@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 (2026-10-31)
+
+- Activity overview: choose from 19 metrics (contributions, streaks, commits, pull requests opened and merged, issues opened, reviews, stars, forks, repositories, languages, followers, organisations, years on GitHub and more)
+- Time frame for the overview: last 12 months, a chosen year, or all time
+
 ## 0.1.2 (2026-10-31)
 
 - "View on GitHub" link is now an On/Off switch on the Content tab
