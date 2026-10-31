@@ -9,6 +9,8 @@
 // Minimal stand-ins for the WordPress functions the plugin uses.
 define( 'ABSPATH', __DIR__ );
 define( 'HOUR_IN_SECONDS', 3600 );
+define( 'DAY_IN_SECONDS', 86400 );
+define( 'WEEK_IN_SECONDS', 604800 );
 $GLOBALS['gw_t'] = array();
 function __( $s ) { return $s; }
 function esc_html__( $s ) { return htmlspecialchars( $s ); }
@@ -28,6 +30,7 @@ function get_transient( $k ) { return $GLOBALS['gw_t'][ $k ] ?? false; }
 function set_transient( $k, $v ) { $GLOBALS['gw_t'][ $k ] = $v; }
 function is_wp_error( $x ) { return $x instanceof WP_Error; }
 class WP_Error { public $m; function __construct( $c, $m ) { $this->m = $m; } function get_error_message() { return $this->m; } }
+function _n( $s, $p, $n ) { return 1 == $n ? $s : $p; }
 function number_format_i18n( $n ) { return number_format( $n ); }
 function wp_enqueue_style() {}
 function add_action() {}

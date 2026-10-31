@@ -21,6 +21,7 @@ function gw_sections() {
 	return array(
 		'profile'      => __( 'Profile (photo, name, bio, links)', 'git-widget' ),
 		'organisations' => __( 'Organisations', 'git-widget' ),
+		'calendar'      => __( 'Contribution calendar', 'git-widget' ),
 	);
 }
 
@@ -159,6 +160,69 @@ function gw_section_organisations( $user, $a ) {
 			. '<img src="' . esc_url( $o['avatar'] ) . '&s=64" alt="" width="32" height="32" loading="lazy"><span>' . esc_html( $o['login'] ) . '</span></a></li>';
 	}
 	return $out . '</ul>';
+}
+
+/**
+ * Contribution calendar: one square per day for the last 12 months (or a chosen year), weeks as columns.
+ * Drawn as an SVG that scales to its container.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_calendar( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) ) {
+		return gw_error( $cal );
+	}
+	if ( ! $cal['days'] ) {
+		return gw_error( __( 'No contribution data found.', 'git-widget' ) );
+	}
+	$days  = $cal['days'];
+	$dates = array_keys( $days );
+	$start = strtotime( $dates[0] );
+	$start = $start - (int) gmdate( 'w', $start ) * DAY_IN_SECONDS; // Back up to Sunday.
+	$max   = max( 1, max( $days ) );
+	$cell  = 11;
+	$gap   = 3;
+	$left  = 28;
+	$top   = 16;
+	$rects = '';
+	$month = '';
+	$col   = 0;
+	for ( $t = $start; $t <= strtotime( end( $dates ) ); $t += DAY_IN_SECONDS ) {
+		$dow  = (int) gmdate( 'w', $t );
+		$col  = (int) floor( ( $t - $start ) / WEEK_IN_SECONDS );
+		$date = gmdate( 'Y-m-d', $t );
+		if ( 0 === $dow && (int) gmdate( 'j', $t ) <= 7 ) {
+			$month .= '<text x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="10">' . esc_html( date_i18n( 'M', $t ) ) . '</text>';
+		}
+		if ( ! isset( $days[ $date ] ) ) {
+			continue;
+		}
+		$n      = $days[ $date ];
+		$level  = 0 === $n ? 0 : (int) min( 4, ceil( 4 * $n / $max ) );
+		$label  = sprintf( _n( '%1$s contribution on %2$s', '%1$s contributions on %2$s', $n, 'git-widget' ), number_format_i18n( $n ), date_i18n( 'M j, Y', $t ) );
+		$rects .= '<rect class="gw-l' . $level . '" x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="' . ( $top + $dow * ( $cell + $gap ) ) . '" width="' . $cell . '" height="' . $cell . '" rx="2"><title>' . esc_html( $label ) . '</title></rect>';
+	}
+	$width  = $left + ( $col + 1 ) * ( $cell + $gap );
+	$height = $top + 7 * ( $cell + $gap );
+	$labels = '';
+	foreach ( array( 1 => __( 'Mon', 'git-widget' ), 3 => __( 'Wed', 'git-widget' ), 5 => __( 'Fri', 'git-widget' ) ) as $d => $l ) {
+		$labels .= '<text x="0" y="' . ( $top + $d * ( $cell + $gap ) + 9 ) . '">' . esc_html( $l ) . '</text>';
+	}
+	$legend = '';
+	for ( $i = 0; $i <= 4; $i++ ) {
+		$legend .= '<span class="gw-l' . $i . '"></span>';
+	}
+	$title = $year
+		? sprintf( _n( '%1$s contribution in %2$d', '%1$s contributions in %2$d', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ), $year )
+		: sprintf( _n( '%s contribution in the last year', '%s contributions in the last year', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ) );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
+		. '<div class="gw-cal-scroll"><svg class="gw-cal" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
+		. '<g class="gw-axis">' . $month . $labels . '</g>' . $rects . '</svg></div>'
+		. '<p class="gw-legend">' . esc_html__( 'Less', 'git-widget' ) . ' ' . $legend . ' ' . esc_html__( 'More', 'git-widget' ) . '</p>';
 }
 
 /**
