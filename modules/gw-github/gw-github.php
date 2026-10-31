@@ -53,10 +53,55 @@ class GW_BB_Module extends FLBuilderModule {
 			'types_style' => $s['types_style'] ?? 'axes',
 			'bio_breaks'  => $s['bio_breaks'] ?? 'yes',
 			'count'       => $s['count'] ?? 6,
-			'metrics'     => implode( ',', (array) ( $s['metrics'] ?? array() ) ),
-			'period'      => $s['period'] ?? '',
+			'metrics'       => self::metrics( $s ),
+			'awesome_count' => $s['awesome_count'] ?? 6,
+			'period'        => $s['period'] ?? '',
 		);
 	}
+
+	/**
+	 * The overview metrics from the mode menu and the per-metric switches.
+	 *
+	 * @param array $s Module settings.
+	 * @return string "awesome", or a comma-separated list of metric keys.
+	 */
+	public static function metrics( $s ) {
+		if ( 'custom' !== ( $s['metrics_mode'] ?? 'awesome' ) ) {
+			return 'awesome';
+		}
+		$on = array();
+		foreach ( array_keys( gw_overview_metrics() ) as $m ) {
+			if ( 'yes' === ( $s[ 'metric_' . $m ] ?? 'no' ) ) {
+				$on[] = $m;
+			}
+		}
+		return $on ? implode( ',', $on ) : 'awesome';
+	}
+}
+
+/**
+ * One On/Off switch per overview metric, for the "Choose my own" list.
+ *
+ * @return array Beaver Builder fields.
+ */
+function gw_bb_metric_switches() {
+	$fields = array();
+	foreach ( gw_overview_metrics() as $key => $label ) {
+		$fields[ 'metric_' . $key ] = array(
+			'type'    => 'button-group',
+			'label'   => $label,
+			'default' => in_array( $key, array( 'contributions', 'active_days', 'current_streak', 'longest_streak' ), true ) ? 'yes' : 'no',
+			'options' => array(
+				'yes' => __( 'On', 'git-widget' ),
+				'no'  => __( 'Off', 'git-widget' ),
+			),
+		);
+	}
+	$fields['metrics_note'] = array(
+		'type'    => 'raw',
+		'content' => '<p style="margin:0;opacity:.8">' . esc_html__( 'Stars, forks, repositories, languages, followers, following, organisations and years on GitHub are always current. The rest follow the time frame.', 'git-widget' ) . '</p>',
+	);
+	return $fields;
 }
 
 $gw_years = array( '' => __( 'Last 12 months', 'git-widget' ) );
@@ -124,15 +169,27 @@ FLBuilder::register_module(
 				'overview' => array(
 					'title'  => __( 'Activity overview', 'git-widget' ),
 					'fields' => array(
-						'metrics' => array(
-							'type'         => 'select',
-							'label'        => __( 'Metrics', 'git-widget' ),
-							'multi-select' => true,
-							'options'      => gw_overview_metrics(),
-							'default'      => array( 'contributions', 'active_days', 'current_streak', 'longest_streak' ),
-							'help'         => __( 'Used when "Activity overview" is one of the sections. Stars, forks, repositories, languages, followers and years on GitHub are always current; the rest follow the time frame.', 'git-widget' ),
+						'metrics_mode'  => array(
+							'type'    => 'select',
+							'label'   => __( 'Which stats', 'git-widget' ),
+							'default' => 'awesome',
+							'options' => array(
+								'awesome' => __( 'Awesome Mode: pick my most impressive stats', 'git-widget' ),
+								'custom'  => __( 'Choose my own', 'git-widget' ),
+							),
+							'toggle'  => array(
+								'awesome' => array( 'fields' => array( 'awesome_count' ) ),
+								'custom'  => array( 'sections' => array( 'overview_metrics' ) ),
+							),
+							'help'    => __( 'Used when "Activity overview" is one of the sections.', 'git-widget' ),
 						),
-						'period'  => array(
+						'awesome_count' => array(
+							'type'    => 'unit',
+							'label'   => __( 'How many stats', 'git-widget' ),
+							'default' => 6,
+							'slider'  => array( 'min' => 2, 'max' => 12, 'step' => 1 ),
+						),
+						'period'        => array(
 							'type'    => 'select',
 							'label'   => __( 'Time frame', 'git-widget' ),
 							'default' => '',
@@ -144,6 +201,10 @@ FLBuilder::register_module(
 							),
 						),
 					),
+				),
+				'overview_metrics' => array(
+					'title'  => __( 'Activity overview: stats to show', 'git-widget' ),
+					'fields' => gw_bb_metric_switches(),
 				),
 				'period' => array(
 					'title'  => __( 'Time period', 'git-widget' ),
