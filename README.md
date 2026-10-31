@@ -8,7 +8,7 @@ Pick any of these sections, in any order, in one widget or spread across several
 
 - **Profile:** your photo, name, bio, company, location, website, followers and repositories
 - **Organisations:** the orgs you publicly belong to, as little logo chips
-- **Contribution calendar:** the familiar green squares, in your accent colour, with empty days left transparent so it looks right in dark mode. Show the last 12 months, a specific year, or all time, which stacks a full calendar for every year you've been on GitHub
+- **Contribution calendar:** the familiar green squares, in your accent colour, with empty days left transparent so it looks right in dark mode. Show the last 12 months, a specific year, or all time, which stacks a full calendar for every year you've been on GitHub. You can also let visitors flip between years themselves with a dropdown or a list of years beside or below the calendar
 - **Activity overview:** tiles with your stats for the last 12 months, a specific year, or all time. Leave it in Awesome Mode and it picks your most impressive numbers for you, or choose your own
 - **Contribution types:** commits vs pull requests vs issues vs code reviews, as GitHub's cross chart or a bar
 - **Contributions per month** and **per year:** bar charts
@@ -53,6 +53,8 @@ Same options, typed out:
 | `title` | none | A heading above the widget |
 | `year` | last 12 months | e.g. `2025` |
 | `period` | last 12 months | `last`, `year` or `all` (activity overview) |
+| `calendar_picker` | `off` | `dropdown` or `list` lets visitors switch between the last 12 months, each year and all years |
+| `picker_position` | `right` | Where the year list goes: `left`, `right` or `bottom` |
 | `calendar_period` | last 12 months | `last`, `year` or `all` (contribution calendar; `all` shows one calendar per year) |
 | `metrics` | `awesome` | `awesome`, or a comma-separated list from below |
 | `awesome_count` | `6` | How many stats Awesome Mode shows (2 to 12) |

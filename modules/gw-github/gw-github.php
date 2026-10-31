@@ -57,6 +57,8 @@ class GW_BB_Module extends FLBuilderModule {
 			'awesome_count' => $s['awesome_count'] ?? 6,
 			'period'        => $s['period'] ?? '',
 			'calendar_period' => $s['calendar_period'] ?? '',
+			'calendar_picker' => $s['calendar_picker'] ?? 'off',
+			'picker_position' => $s['picker_position'] ?? 'right',
 		);
 	}
 
@@ -219,6 +221,28 @@ FLBuilder::register_module(
 								'last' => __( 'Last 12 months', 'git-widget' ),
 								'year' => __( 'The year chosen below', 'git-widget' ),
 								'all'  => __( 'All time: one calendar per year', 'git-widget' ),
+							),
+						),
+						'calendar_picker' => array(
+							'type'    => 'select',
+							'label'   => __( 'Let visitors pick the year', 'git-widget' ),
+							'default' => 'off',
+							'options' => array(
+								'off'      => __( 'Off', 'git-widget' ),
+								'dropdown' => __( 'Dropdown', 'git-widget' ),
+								'list'     => __( 'List of years', 'git-widget' ),
+							),
+							'toggle'  => array( 'list' => array( 'fields' => array( 'picker_position' ) ) ),
+							'help'    => __( 'Visitors can switch between the last 12 months, each year and all years. The setting above picks what shows first.', 'git-widget' ),
+						),
+						'picker_position' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Year list position', 'git-widget' ),
+							'default' => 'right',
+							'options' => array(
+								'left'   => __( 'Left', 'git-widget' ),
+								'right'  => __( 'Right', 'git-widget' ),
+								'bottom' => __( 'Bottom', 'git-widget' ),
 							),
 						),
 						'year'  => array(
