@@ -59,6 +59,10 @@ class GW_BB_Module extends FLBuilderModule {
 			'calendar_period' => $s['calendar_period'] ?? '',
 			'calendar_picker' => $s['calendar_picker'] ?? 'off',
 			'picker_position' => $s['picker_position'] ?? 'right',
+			'all_layout'      => $s['all_layout'] ?? 'joined',
+			'calendar_chart'  => $s['calendar_chart'] ?? 'off',
+			'chart_style'     => $s['chart_style'] ?? 'line',
+			'chart_fill'      => $s['chart_fill'] ?? 'yes',
 		);
 	}
 
@@ -221,6 +225,50 @@ FLBuilder::register_module(
 								'last' => __( 'Last 12 months', 'git-widget' ),
 								'year' => __( 'The year chosen below', 'git-widget' ),
 								'all'  => __( 'All time: one calendar per year', 'git-widget' ),
+							),
+						),
+						'all_layout'      => array(
+							'type'    => 'button-group',
+							'label'   => __( 'All-years layout', 'git-widget' ),
+							'default' => 'joined',
+							'options' => array(
+								'joined'   => __( 'One joined block', 'git-widget' ),
+								'separate' => __( 'Separate years', 'git-widget' ),
+							),
+							'help'    => __( 'How "All time" looks: one block with year labels on the right, or a separate calendar per year.', 'git-widget' ),
+						),
+						'calendar_chart'  => array(
+							'type'    => 'select',
+							'label'   => __( 'Chart above the calendar', 'git-widget' ),
+							'default' => 'off',
+							'options' => array(
+								'off'   => __( 'Off', 'git-widget' ),
+								'year'  => __( 'Contributions per year', 'git-widget' ),
+								'month' => __( 'Contributions per month', 'git-widget' ),
+								'day'   => __( 'Contributions per day', 'git-widget' ),
+							),
+							'toggle'  => array(
+								'year'  => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
+								'month' => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
+								'day'   => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
+							),
+						),
+						'chart_style'     => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Chart style', 'git-widget' ),
+							'default' => 'line',
+							'options' => array(
+								'line' => __( 'Line', 'git-widget' ),
+								'bar'  => __( 'Bars', 'git-widget' ),
+							),
+						),
+						'chart_fill'      => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Shade under the line', 'git-widget' ),
+							'default' => 'yes',
+							'options' => array(
+								'yes' => __( 'On', 'git-widget' ),
+								'no'  => __( 'Off', 'git-widget' ),
 							),
 						),
 						'calendar_picker' => array(
