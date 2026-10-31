@@ -11,5 +11,8 @@
  },
  "Monthly and yearly charts": {
   "sections": "monthly,yearly"
+ },
+ "Achievements": {
+  "sections": "achievements"
  }
 }
