@@ -32,3 +32,16 @@
 .gw-theme-light{color:#1f2328;background:#fff}
 .gw-theme-dark{color:#e6edf3;background:#0d1117}
 .gw-theme-light,.gw-theme-dark{padding:1rem;border-radius:12px}
+
+/* Contribution calendar: levels mix the accent colour with transparency so they work on any background. */
+.gw-cal-scroll{overflow-x:auto}
+.gw-cal{display:block;width:100%;min-width:460px;height:auto}
+.gw-axis text{font-size:9px;fill:var(--gw-muted)}
+.gw-cal rect,.gw-legend span{fill:var(--gw-soft);background:var(--gw-soft)}
+.gw-cal .gw-l0,.gw-legend .gw-l0{fill:color-mix(in srgb,currentColor 9%,transparent);background:color-mix(in srgb,currentColor 9%,transparent)}
+.gw-cal .gw-l1,.gw-legend .gw-l1{fill:color-mix(in srgb,var(--gw-accent) 35%,transparent);background:color-mix(in srgb,var(--gw-accent) 35%,transparent)}
+.gw-cal .gw-l2,.gw-legend .gw-l2{fill:color-mix(in srgb,var(--gw-accent) 60%,transparent);background:color-mix(in srgb,var(--gw-accent) 60%,transparent)}
+.gw-cal .gw-l3,.gw-legend .gw-l3{fill:color-mix(in srgb,var(--gw-accent) 82%,transparent);background:color-mix(in srgb,var(--gw-accent) 82%,transparent)}
+.gw-cal .gw-l4,.gw-legend .gw-l4{fill:var(--gw-accent);background:var(--gw-accent)}
+.gw-legend{display:flex;align-items:center;justify-content:flex-end;gap:3px;margin:.3rem 0 0;font-size:.75rem;color:var(--gw-muted)}
+.gw-legend span{display:inline-block;width:10px;height:10px;border-radius:2px}

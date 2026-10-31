@@ -1,5 +1,8 @@
 {
  "Profile and organisations": {
   "sections": "profile,organisations"
+ },
+ "Contribution calendar": {
+  "sections": "calendar"
  }
 }
