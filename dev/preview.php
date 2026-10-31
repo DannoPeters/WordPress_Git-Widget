@@ -11,6 +11,7 @@ define( 'ABSPATH', __DIR__ );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'WEEK_IN_SECONDS', 604800 );
+define( 'YEAR_IN_SECONDS', 31536000 );
 $GLOBALS['gw_t'] = array();
 function __( $s ) { return $s; }
 function esc_html__( $s ) { return htmlspecialchars( $s ); }

@@ -53,6 +53,8 @@ function gw_defaults() {
 		'types_style' => 'axes',
 		'bio_breaks'  => 'yes',
 		'count'       => 6,
+		'metrics'     => 'contributions,active_days,current_streak,longest_streak',
+		'period'      => '',
 	);
 }
 
@@ -295,34 +297,155 @@ function gw_calendar_stats( $days ) {
 }
 
 /**
- * Activity overview: contributions, active days, current and longest streak, busiest day.
+ * Metrics the activity overview can show, in display order.
+ *
+ * @return array Key => label.
+ */
+function gw_overview_metrics() {
+	return array(
+		'contributions'  => __( 'Contributions', 'git-widget' ),
+		'active_days'    => __( 'Active days', 'git-widget' ),
+		'current_streak' => __( 'Current streak', 'git-widget' ),
+		'longest_streak' => __( 'Longest streak', 'git-widget' ),
+		'daily_average'  => __( 'Average per active day', 'git-widget' ),
+		'busiest_day'    => __( 'Busiest day', 'git-widget' ),
+		'commits'        => __( 'Commits', 'git-widget' ),
+		'pull_requests'  => __( 'Pull requests opened', 'git-widget' ),
+		'merged_prs'     => __( 'Pull requests merged', 'git-widget' ),
+		'issues_opened'  => __( 'Issues opened', 'git-widget' ),
+		'reviews'        => __( 'Code reviews', 'git-widget' ),
+		'stars'          => __( 'Stars received', 'git-widget' ),
+		'forks'          => __( 'Forks of my repositories', 'git-widget' ),
+		'repositories'   => __( 'Public repositories', 'git-widget' ),
+		'languages'      => __( 'Languages used', 'git-widget' ),
+		'followers'      => __( 'Followers', 'git-widget' ),
+		'following'      => __( 'Following', 'git-widget' ),
+		'organisations'  => __( 'Organisations', 'git-widget' ),
+		'member_since'   => __( 'Years on GitHub', 'git-widget' ),
+	);
+}
+
+/**
+ * The time frame a widget covers.
+ *
+ * @param array $a Widget options (period: last, year, all; year).
+ * @return array kind (last|year|all), year, range (search date range or ""), label.
+ */
+function gw_period( $a ) {
+	$kind = in_array( $a['period'], array( 'last', 'year', 'all' ), true ) ? $a['period'] : ( (int) $a['year'] ? 'year' : 'last' );
+	$year = (int) $a['year'] ? (int) $a['year'] : (int) gmdate( 'Y' );
+	if ( 'all' === $kind ) {
+		return array( 'kind' => 'all', 'year' => null, 'range' => '', 'label' => __( 'all time', 'git-widget' ) );
+	}
+	if ( 'year' === $kind ) {
+		return array( 'kind' => 'year', 'year' => $year, 'range' => "$year-01-01..$year-12-31", 'label' => (string) $year );
+	}
+	return array( 'kind' => 'last', 'year' => null, 'range' => gmdate( 'Y-m-d', strtotime( '-1 year +1 day' ) ) . '..' . gmdate( 'Y-m-d' ), 'label' => __( 'last 12 months', 'git-widget' ) );
+}
+
+/**
+ * Activity overview: a row of tiles. Which metrics (option "metrics") and the time frame (option "period":
+ * last 12 months, a year, or all time) are configurable. Repository and profile figures are always current.
  *
  * @param string $user GitHub username.
- * @param array  $a    Widget options (year).
+ * @param array  $a    Widget options (metrics, period, year).
  * @return string HTML.
  */
 function gw_section_overview( $user, $a ) {
-	$year = (int) $a['year'] ? (int) $a['year'] : null;
-	$cal  = gw_calendar( $user, $year );
-	if ( is_wp_error( $cal ) ) {
-		return gw_error( $cal );
+	$period = gw_period( $a );
+	$all    = gw_overview_metrics();
+	$want   = array_values( array_intersect( array_map( 'trim', explode( ',', $a['metrics'] ) ), array_keys( $all ) ) );
+	if ( ! $want ) {
+		$want = array( 'contributions', 'active_days', 'current_streak', 'longest_streak' );
 	}
-	$st    = gw_calendar_stats( $cal['days'] );
-	$tiles = array(
-		array( gw_num( $st['total'] ), $year ? sprintf( __( 'contributions in %d', 'git-widget' ), $year ) : __( 'contributions in the last year', 'git-widget' ) ),
-		array( gw_num( $st['active'] ), __( 'active days', 'git-widget' ) ),
-		array( $st['current'], __( 'day current streak', 'git-widget' ) ),
-		array( $st['longest'], __( 'day longest streak', 'git-widget' ) ),
-	);
-	$out = '<p class="gw-label">' . esc_html__( 'Activity overview', 'git-widget' ) . '</p><div class="gw-tiles">';
+	$cal_keys = array( 'contributions', 'active_days', 'current_streak', 'longest_streak', 'daily_average', 'busiest_day' );
+	$st       = null;
+	if ( array_intersect( $want, $cal_keys ) ) {
+		$cal = 'all' === $period['kind'] ? gw_calendar_all( $user ) : gw_calendar( $user, $period['year'] );
+		if ( is_wp_error( $cal ) ) {
+			return gw_error( $cal );
+		}
+		$st = gw_calendar_stats( $cal['days'] );
+	}
+	$repos   = array_intersect( $want, array( 'stars', 'forks', 'languages' ) ) ? gw_repos( $user ) : array();
+	$profile = array_intersect( $want, array( 'repositories', 'followers', 'following', 'organisations', 'member_since' ) ) ? gw_profile( $user ) : array();
+	$tiles   = array();
+	foreach ( $want as $m ) {
+		$value = null;
+		$sub   = '';
+		switch ( $m ) {
+			case 'contributions':
+				$value = $st['total'];
+				break;
+			case 'active_days':
+				$value = $st['active'];
+				break;
+			case 'current_streak':
+				$value = $st['current'];
+				$sub   = _n( 'day', 'days', $st['current'], 'git-widget' );
+				break;
+			case 'longest_streak':
+				$value = $st['longest'];
+				$sub   = _n( 'day', 'days', $st['longest'], 'git-widget' );
+				break;
+			case 'daily_average':
+				$value = $st['active'] ? round( $st['total'] / $st['active'], 1 ) : 0;
+				break;
+			case 'busiest_day':
+				$value = $st['best_count'];
+				$sub   = $st['best_day'] ? date_i18n( 'M j, Y', strtotime( $st['best_day'] ) ) : '';
+				break;
+			case 'commits':
+			case 'pull_requests':
+			case 'merged_prs':
+			case 'issues_opened':
+			case 'reviews':
+				$n     = gw_search_count( $user, $m, $period['range'] );
+				$value = is_wp_error( $n ) ? null : $n;
+				break;
+			case 'stars':
+			case 'forks':
+				if ( ! is_wp_error( $repos ) ) {
+					$value = array_sum( array_column( $repos, $m ) );
+				}
+				break;
+			case 'languages':
+				if ( ! is_wp_error( $repos ) ) {
+					$value = count( array_unique( array_filter( array_column( $repos, 'language' ) ) ) );
+				}
+				break;
+			case 'repositories':
+			case 'followers':
+			case 'following':
+				if ( ! is_wp_error( $profile ) ) {
+					$value = $profile[ 'repositories' === $m ? 'repos' : $m ];
+				}
+				break;
+			case 'organisations':
+				if ( ! is_wp_error( $profile ) ) {
+					$value = count( $profile['orgs'] );
+				}
+				break;
+			case 'member_since':
+				if ( ! is_wp_error( $profile ) ) {
+					$value = max( 0, (int) floor( ( time() - strtotime( $profile['created'] ) ) / YEAR_IN_SECONDS ) );
+					$sub   = sprintf( __( 'since %s', 'git-widget' ), date_i18n( 'Y', strtotime( $profile['created'] ) ) );
+				}
+				break;
+		}
+		if ( null !== $value ) {
+			$tiles[] = array( is_float( $value ) ? number_format_i18n( $value, 1 ) : gw_num( (int) $value ), $all[ $m ], $sub );
+		}
+	}
+	if ( ! $tiles ) {
+		return gw_error( __( 'None of the chosen metrics could be loaded.', 'git-widget' ) );
+	}
+	$out = '<p class="gw-label">' . esc_html( sprintf( __( 'Activity overview, %s', 'git-widget' ), $period['label'] ) ) . '</p><div class="gw-tiles">';
 	foreach ( $tiles as $t ) {
-		$out .= '<div class="gw-tile"><strong>' . esc_html( $t[0] ) . '</strong><span>' . esc_html( $t[1] ) . '</span></div>';
+		$out .= '<div class="gw-tile"><strong>' . esc_html( $t[0] ) . '</strong><span>' . esc_html( $t[1] ) . '</span>'
+			. ( '' !== $t[2] ? '<em>' . esc_html( $t[2] ) . '</em>' : '' ) . '</div>';
 	}
-	$out .= '</div>';
-	if ( $st['best_count'] ) {
-		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Busiest day: %1$s, with %2$s contributions.', 'git-widget' ), date_i18n( 'F j, Y', strtotime( $st['best_day'] ) ), number_format_i18n( $st['best_count'] ) ) ) . '</p>';
-	}
-	return $out;
+	return $out . '</div>';
 }
 
 /**

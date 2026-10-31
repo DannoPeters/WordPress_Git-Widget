@@ -42,5 +42,14 @@
  },
  "New: running total": {
   "sections": "cumulative"
+ },
+ "Overview: custom metrics, last 12 months": {
+  "sections": "overview",
+  "metrics": "contributions,commits,merged_prs,issues_opened,reviews,stars,forks,languages,busiest_day,member_since"
+ },
+ "Overview: all time": {
+  "sections": "overview",
+  "period": "all",
+  "metrics": "contributions,longest_streak,commits,pull_requests,stars,followers"
  }
 }
