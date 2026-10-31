@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 (2026-10-31)
+
+- Contribution calendar: last 12 months, a specific year, or all time, which stacks one calendar per year on a shared colour scale (#18)
+
 ## 0.1.5 (2026-10-31)
 
 - Awesome Mode: the activity overview picks your most impressive stats automatically (new default)

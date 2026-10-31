@@ -56,6 +56,7 @@ class GW_BB_Module extends FLBuilderModule {
 			'metrics'       => self::metrics( $s ),
 			'awesome_count' => $s['awesome_count'] ?? 6,
 			'period'        => $s['period'] ?? '',
+			'calendar_period' => $s['calendar_period'] ?? '',
 		);
 	}
 
@@ -209,6 +210,17 @@ FLBuilder::register_module(
 				'period' => array(
 					'title'  => __( 'Time period', 'git-widget' ),
 					'fields' => array(
+						'calendar_period' => array(
+							'type'    => 'select',
+							'label'   => __( 'Contribution calendar shows', 'git-widget' ),
+							'default' => '',
+							'options' => array(
+								''     => __( 'Last 12 months (or the year chosen below)', 'git-widget' ),
+								'last' => __( 'Last 12 months', 'git-widget' ),
+								'year' => __( 'The year chosen below', 'git-widget' ),
+								'all'  => __( 'All time: one calendar per year', 'git-widget' ),
+							),
+						),
 						'year'  => array(
 							'type'    => 'select',
 							'label'   => __( 'Year', 'git-widget' ),

@@ -59,5 +59,14 @@
   "sections": "overview",
   "period": "all",
   "awesome_count": 8
+ },
+ "Calendar: all time (multi-year)": {
+  "sections": "calendar",
+  "calendar_period": "all"
+ },
+ "Calendar: a specific year": {
+  "sections": "calendar",
+  "calendar_period": "year",
+  "year": "2024"
  }
 }
