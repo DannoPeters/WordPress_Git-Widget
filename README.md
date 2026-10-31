@@ -12,10 +12,14 @@ Use it as a **Beaver Builder module** or the **`[git_widget]` shortcode**. Guten
 | `organisations` | Public organisations | No |
 | `calendar` | Contribution calendar for the last 12 months or a chosen year | No |
 | `overview` | Contributions, active days, current and longest streak, busiest day | No |
-| `types` | Commits vs pull requests vs issues vs code reviews, plus private contributions | Yes |
+| `types` | Commits vs pull requests vs issues vs code reviews: GitHub's cross chart or a bar. Exact counts with a token; otherwise the profile's percentages (needs Activity overview turned on in GitHub) | No |
 | `monthly` | Contributions per month (bar chart) | No |
 | `yearly` | Contributions per year (bar chart) | Recommended |
 | `achievements` | Achievement badges with tiers | No |
+| `languages` | Top languages across public repositories (donut, GitHub's language colours) | No |
+| `repositories` | Top repositories by stars, as cards | No |
+| `weekdays` | Contributions by day of the week | No |
+| `cumulative` | Running total of contributions over the period | No |
 
 Mix any of them in one widget, or spread them across several widgets on the same page. Each widget is independent.
 
@@ -54,6 +58,9 @@ Add the **GitHub Widget** module (category *Git Widget*).
 | `layout` | `stack` | `stack`, `grid` |
 | `title` | none | Heading text |
 | `show_link` | `yes` | `yes`, `no` |
+| `types_style` | `axes` | `axes` (cross chart), `bar` |
+| `bio_breaks` | `yes` | `yes` turns runs of 2+ underscores in the bio into one line break; `no` shows them |
+| `count` | `6` | Repositories or languages to list |
 
 ## How the data is fetched
 
