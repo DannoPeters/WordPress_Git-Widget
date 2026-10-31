@@ -24,7 +24,7 @@ function sanitize_title( $s ) { return strtolower( trim( preg_replace( '/[^A-Za-
 function wp_parse_args( $a, $d ) { return array_merge( $d, (array) $a ); }
 function wp_unique_id() { static $i = 0; return ++$i; }
 function current_user_can() { return true; }
-function get_option( $k, $d = false ) { return 'gw_settings' === $k ? array( 'username' => 'octocat', 'token' => 'x', 'cache_hours' => 6 ) : $d; }
+function get_option( $k, $d = false ) { return 'gw_settings' === $k ? array( 'username' => 'octocat', 'token' => getenv( 'GW_TOKEN' ) ? 'x' : '', 'cache_hours' => 6 ) : $d; }
 function update_option() {}
 function get_transient( $k ) { return $GLOBALS['gw_t'][ $k ] ?? false; }
 function set_transient( $k, $v ) { $GLOBALS['gw_t'][ $k ] = $v; }

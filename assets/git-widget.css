@@ -81,3 +81,10 @@
 .gw-tier{position:absolute;top:40px;right:2px;font-size:.7rem;font-weight:700;padding:0 .35rem;border-radius:999px;background:var(--gw-accent);color:#fff}
 .gw-badge-name{font-size:.72rem;line-height:1.2;margin-top:.25rem;color:var(--gw-muted)}
 @media (prefers-reduced-motion:reduce){.gw-badges img{transition:none}}
+
+/* Activity overview axes */
+.gw-axes{display:block;width:100%;max-width:420px;height:auto;margin:0 auto;overflow:visible}
+.gw-axis-line{stroke:color-mix(in srgb,var(--gw-accent) 70%,currentColor);stroke-width:2.5}
+.gw-axis-shape{fill:color-mix(in srgb,var(--gw-accent) 45%,transparent);stroke:var(--gw-accent);stroke-width:1.5;stroke-linejoin:round}
+.gw-axis-dot{fill:Canvas;stroke:color-mix(in srgb,var(--gw-accent) 70%,currentColor);stroke-width:2}
+.gw-axis-label{font-size:13px;fill:var(--gw-muted)}

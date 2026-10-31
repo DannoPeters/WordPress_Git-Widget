@@ -18,5 +18,18 @@
  "Two widgets on one page: bio card, then activity (forced dark, purple accent)": {
   "sections": "profile",
   "show_link": "no"
+ },
+ "Bio with underscore breaks off": {
+  "sections": "profile",
+  "bio_breaks": "no",
+  "show_link": "no"
+ },
+ "Contribution types: cross chart (no token) and bar": {
+  "sections": "types",
+  "layout": "grid"
+ },
+ "Contribution types as bar": {
+  "sections": "types",
+  "types_style": "bar"
  }
 }
