@@ -150,7 +150,10 @@ function gw_render( $atts ) {
 	$style   = apply_filters( 'gw_widget_style', $style, $a );
 	$classes = apply_filters( 'gw_widget_classes', $classes, $a );
 
-	$out = '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( implode( ' ', $classes ) ) . '" style="' . esc_attr( $style ) . '">';
+	// Edition and version markers: they let anyone check (with tools/check-attribution.js) that a free widget still
+	// shows its credit, as the additional licence terms require.
+	$out = '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( implode( ' ', $classes ) ) . '" style="' . esc_attr( $style ) . '"'
+		. ' data-gw="' . esc_attr( GW_VERSION ) . '" data-gw-edition="' . ( gw_is_pro() ? 'pro' : 'free' ) . '">';
 	if ( '' !== $a['title'] ) {
 		$out .= '<h3 class="gw-title">' . esc_html( $a['title'] ) . '</h3>';
 	}
@@ -166,6 +169,9 @@ function gw_render( $atts ) {
 	if ( 'yes' === $a['show_link'] ) {
 		$out .= '<p class="gw-footer"><a href="' . esc_url( 'https://github.com/' . $user ) . '" target="_blank" rel="noopener">' . esc_html( sprintf( __( 'View %s on GitHub', 'git-widget' ), '@' . $user ) ) . '</a></p>';
 	}
+	if ( ! gw_is_pro() ) {
+		gw_enqueue_script();
+	}
 	return $out . gw_credit() . '</div>';
 }
 
@@ -175,7 +181,7 @@ function gw_render( $atts ) {
  * @return string HTML.
  */
 function gw_credit() {
-	$html = '<p class="gw-credit">' . sprintf(
+	$html = '<p class="gw-credit" data-gw-credit>' . sprintf(
 		/* translators: %s: link to the author's site */
 		esc_html__( 'Git Widget by %s', 'git-widget' ),
 		'<a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters</a>'
@@ -185,8 +191,20 @@ function gw_credit() {
 	 *
 	 * @param string $html Credit HTML.
 	 */
-	return (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
+	$out = (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
+	// The free edition always keeps the credit and its link; a filter may restyle it but not drop it.
+	return gw_is_pro() || false !== strpos( $out, 'dannopeters.ca' ) ? $out : $html;
 }
+
+/**
+ * Generator tag in the page head, the way WordPress and most plugins announce themselves.
+ *
+ * @return void
+ */
+function gw_generator() {
+	echo '<meta name="generator" content="' . esc_attr( ( gw_is_pro() ? 'Git Widget Pro ' : 'Git Widget ' ) . GW_VERSION ) . '">' . "\n";
+}
+add_action( 'wp_head', 'gw_generator' );
 
 /**
  * A small notice shown in place of a section that can't load.
