@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9 (2026-10-31)
+
+- Small-screen options for the calendar: keep scrolling, or split it into two 6-month rows, joined (months above and below) or with the months between (#24)
+- Small-screen options for the year list: multiple rows, one scrolling row (newest first) or a dropdown (#24)
+- Activity overview per screen size: tiles per row, text size and full, short or no labels for desktop, tablet and mobile; mobile defaults to two per row with short names (#24)
+
 ## 0.1.8 (2026-10-31)
 
 - All-time calendar defaults to one joined block: a band per year, weekdays on the left, months along the top and year labels on the right; separate years remain an option
