@@ -14,5 +14,9 @@
  },
  "Achievements": {
   "sections": "achievements"
+ },
+ "Two widgets on one page: bio card, then activity (forced dark, purple accent)": {
+  "sections": "profile",
+  "show_link": "no"
  }
 }
