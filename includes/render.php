@@ -252,9 +252,9 @@ function gw_section_calendar( $user, $a ) {
 		? sprintf( _n( '%1$s contribution in %2$d', '%1$s contributions in %2$d', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ), $year )
 		: sprintf( _n( '%s contribution in the last year', '%s contributions in the last year', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ) );
 	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
-		. '<div class="gw-cal-scroll"><svg class="gw-cal" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
+		. '<div class="gw-cal-scroll"><svg class="gw-cal wp-dark-mode-ignore" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
 		. '<g class="gw-axis">' . $month . $labels . '</g>' . $rects . '</svg></div>'
-		. '<p class="gw-legend">' . esc_html__( 'Less', 'git-widget' ) . ' ' . $legend . ' ' . esc_html__( 'More', 'git-widget' ) . '</p>';
+		. '<p class="gw-legend wp-dark-mode-ignore">' . esc_html__( 'Less', 'git-widget' ) . ' ' . $legend . ' ' . esc_html__( 'More', 'git-widget' ) . '</p>';
 }
 
 /**
