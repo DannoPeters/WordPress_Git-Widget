@@ -56,6 +56,8 @@ function gw_defaults() {
 		'metrics'       => 'awesome',
 		'awesome_count' => 6,
 		'calendar_period' => '',
+		'calendar_picker' => 'off',
+		'picker_position' => 'right',
 		'period'      => '',
 	);
 }
@@ -206,22 +208,87 @@ function gw_section_organisations( $user, $a ) {
  */
 function gw_section_calendar( $user, $a ) {
 	$period = gw_period( array( 'period' => $a['calendar_period'], 'year' => $a['year'] ) );
-	if ( 'all' === $period['kind'] ) {
+	$start  = 'all' === $period['kind'] ? 'all' : ( 'year' === $period['kind'] ? 'y' . $period['year'] : 'last' );
+	if ( ! in_array( $a['calendar_picker'], array( 'dropdown', 'list' ), true ) ) {
+		$html = gw_calendar_panel( $user, $start );
+		return '' === $html ? gw_error( __( 'No contribution data found.', 'git-widget' ) ) : $html . gw_calendar_legend();
+	}
+	return gw_calendar_picker( $user, $start, $a['calendar_picker'], $a['picker_position'] );
+}
+
+/**
+ * One calendar view: "last" (12 months), "yYYYY" (a year) or "all" (every year stacked).
+ *
+ * @param string $user GitHub username.
+ * @param string $view View key.
+ * @return string HTML without the legend, or "" when there is no data.
+ */
+function gw_calendar_panel( $user, $view ) {
+	if ( 'all' === $view ) {
 		return gw_calendar_all_years( $user );
 	}
-	$cal = gw_calendar( $user, $period['year'] );
-	if ( is_wp_error( $cal ) ) {
-		return gw_error( $cal );
+	$year = 'last' === $view ? null : (int) substr( $view, 1 );
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) || ! $cal['days'] ) {
+		return '';
 	}
-	if ( ! $cal['days'] ) {
-		return gw_error( __( 'No contribution data found.', 'git-widget' ) );
-	}
-	$title = $period['year']
-		? sprintf( _n( '%1$s contribution in %2$d', '%1$s contributions in %2$d', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ), $period['year'] )
+	$title = $year
+		? sprintf( _n( '%1$s contribution in %2$d', '%1$s contributions in %2$d', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ), $year )
 		: sprintf( _n( '%s contribution in the last year', '%s contributions in the last year', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ) );
 	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
-		. '<div class="gw-cal-scroll">' . gw_calendar_svg( $cal['days'], $title, max( 1, max( $cal['days'] ) ) ) . '</div>'
-		. gw_calendar_legend();
+		. '<div class="gw-cal-scroll">' . gw_calendar_svg( $cal['days'], $title, max( 1, max( $cal['days'] ) ), $year ) . '</div>';
+}
+
+/**
+ * Calendar with a year picker visitors can use: every view is rendered up front and a small script shows the
+ * chosen one, so switching is instant and needs no extra requests.
+ *
+ * @param string $user     GitHub username.
+ * @param string $start    View shown first.
+ * @param string $style    "dropdown" or "list".
+ * @param string $position For the list: "left", "right" or "bottom".
+ * @return string HTML.
+ */
+function gw_calendar_picker( $user, $start, $style, $position ) {
+	$views = array( 'last' => __( 'Last 12 months', 'git-widget' ) );
+	foreach ( gw_contribution_years( $user ) as $y ) {
+		$views[ 'y' . (int) $y ] = (string) (int) $y;
+	}
+	$views['all'] = __( 'All years', 'git-widget' );
+	$uid    = 'gw-cal-' . wp_unique_id();
+	$panels = '';
+	$nav    = '';
+	foreach ( $views as $key => $label ) {
+		$html = gw_calendar_panel( $user, $key );
+		if ( '' === $html ) {
+			unset( $views[ $key ] );
+			continue;
+		}
+		$on      = $key === $start;
+		$panels .= '<div class="gw-cal-panel" id="' . esc_attr( "$uid-$key" ) . '" role="tabpanel" data-view="' . esc_attr( $key ) . '"' . ( $on ? '' : ' hidden' ) . '>' . $html . '</div>';
+		if ( 'list' === $style ) {
+			$nav .= '<button type="button" role="tab" aria-selected="' . ( $on ? 'true' : 'false' ) . '" aria-controls="' . esc_attr( "$uid-$key" ) . '" data-view="' . esc_attr( $key ) . '">' . esc_html( $label ) . '</button>';
+		} else {
+			$nav .= '<option value="' . esc_attr( $key ) . '"' . ( $on ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
+		}
+	}
+	if ( ! $views ) {
+		return gw_error( __( 'No contribution data found.', 'git-widget' ) );
+	}
+	if ( ! isset( $views[ $start ] ) ) {
+		// The chosen first view had no data: show the first one that does.
+		$panels = preg_replace( '/ hidden>/', '>', $panels, 1 );
+	}
+	gw_enqueue_script();
+	$position = in_array( $position, array( 'left', 'right', 'bottom' ), true ) ? $position : 'right';
+	if ( 'list' === $style ) {
+		$picker = '<div class="gw-cal-years-nav" role="tablist" aria-label="' . esc_attr__( 'Choose a year', 'git-widget' ) . '">' . $nav . '</div>';
+		$class  = 'gw-cal-picker gw-pick-list gw-pick-' . $position;
+	} else {
+		$picker = '<label class="gw-cal-select"><span class="screen-reader-text">' . esc_html__( 'Choose a year', 'git-widget' ) . '</span><select>' . $nav . '</select></label>';
+		$class  = 'gw-cal-picker gw-pick-dropdown';
+	}
+	return '<div class="' . esc_attr( $class ) . '" data-gw-picker>' . $picker . '<div class="gw-cal-panels">' . $panels . '</div></div>' . gw_calendar_legend();
 }
 
 /**
@@ -262,7 +329,7 @@ function gw_calendar_all_years( $user ) {
 		$out   .= '<div class="gw-cal-year"><p class="gw-cal-year-head"><strong>' . (int) $y . '</strong><span>' . esc_html( $label ) . '</span></p>'
 			. '<div class="gw-cal-scroll">' . gw_calendar_svg( $days, $y . ': ' . $label, $max, (int) $y ) . '</div></div>';
 	}
-	return $out . '</div>' . gw_calendar_legend();
+	return $out . '</div>';
 }
 
 /**
@@ -955,6 +1022,15 @@ function gw_section_cumulative( $user, $a ) {
 		. '<polygon points="0,' . ( $h - 20 ) . ' ' . $line . ' ' . $w . ',' . ( $h - 20 ) . '"/><polyline points="' . $line . '"/>'
 		. '<line class="gw-baseline" x1="0" x2="' . $w . '" y1="' . ( $h - 20 ) . '" y2="' . ( $h - 20 ) . '"/>' . $ticks
 		. '<text class="gw-val" x="' . ( $w - 4 ) . '" y="10" style="text-anchor:end">' . esc_html( number_format_i18n( $max ) ) . '</text></svg>';
+}
+
+/**
+ * Load the small script that powers the calendar year picker (once per page, in the footer).
+ *
+ * @return void
+ */
+function gw_enqueue_script() {
+	wp_enqueue_script( 'git-widget', GW_URL . 'assets/git-widget.js', array(), GW_VERSION, true );
 }
 
 /**

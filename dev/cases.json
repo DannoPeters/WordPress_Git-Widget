@@ -68,5 +68,21 @@
   "sections": "calendar",
   "calendar_period": "year",
   "year": "2024"
+ },
+ "Year picker: dropdown": {
+  "sections": "calendar",
+  "calendar_picker": "dropdown"
+ },
+ "Year picker: list on the right": {
+  "sections": "calendar",
+  "calendar_picker": "list",
+  "picker_position": "right"
+ },
+ "Year picker: list along the bottom": {
+  "sections": "calendar",
+  "calendar_picker": "list",
+  "picker_position": "bottom",
+  "calendar_period": "year",
+  "year": "2024"
  }
 }

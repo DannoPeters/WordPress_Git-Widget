@@ -121,3 +121,23 @@
 .gw-cal-year-head{display:flex;align-items:baseline;gap:.6rem;margin:0 0 .2rem;font-size:.85rem}
 .gw-cal-year-head strong{font-size:1rem}
 .gw-cal-year-head span{color:var(--gw-muted)}
+
+/* Calendar year picker */
+.gw-cal-picker{display:grid;gap:.8rem;align-items:start}
+.gw-pick-dropdown .gw-cal-select{justify-self:end}
+.gw-pick-dropdown select{font:inherit;font-size:.85rem;padding:.3rem 1.8rem .3rem .6rem;border:1px solid var(--gw-line);border-radius:8px;background:transparent;color:inherit}
+.gw-pick-dropdown select option{color:#1f2328;background:#fff}
+.gw-pick-left{grid-template-columns:auto minmax(0,1fr)}
+.gw-pick-right{grid-template-columns:minmax(0,1fr) auto}
+.gw-pick-right .gw-cal-years-nav{order:2}
+.gw-pick-bottom .gw-cal-years-nav{order:2}
+.gw-cal-years-nav{display:flex;flex-direction:column;gap:.2rem;max-height:420px;overflow-y:auto}
+.gw-pick-bottom .gw-cal-years-nav{flex-direction:row;flex-wrap:wrap;max-height:none}
+.gw-cal-years-nav button{font:inherit;font-size:.85rem;text-align:left;padding:.3rem .7rem;border:0;border-radius:6px;background:transparent;color:var(--gw-muted);cursor:pointer;white-space:nowrap}
+.gw-cal-years-nav button:hover{background:var(--gw-soft);color:inherit}
+.gw-cal-years-nav button[aria-selected="true"]{background:var(--gw-accent);color:#fff;font-weight:600}
+.gw-cal-years-nav button:focus-visible{outline:2px solid var(--gw-accent);outline-offset:2px}
+.gw-cal-panel[hidden]{display:none}
+.gw-cal-panels,.gw-cal-panel,.gw-cal-year{min-width:0}
+.gw .screen-reader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:640px){.gw-pick-left,.gw-pick-right{grid-template-columns:minmax(0,1fr)}.gw-pick-left .gw-cal-years-nav,.gw-pick-right .gw-cal-years-nav{order:0;flex-direction:row;overflow-x:auto;max-height:none}}

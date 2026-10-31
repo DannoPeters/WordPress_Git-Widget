@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 (2026-10-31)
+
+- Year picker for visitors on the contribution calendar: a dropdown, or a list of years on the left, right or bottom (#20)
+
 ## 0.1.6 (2026-10-31)
 
 - Contribution calendar: last 12 months, a specific year, or all time, which stacks one calendar per year on a shared colour scale (#18)
