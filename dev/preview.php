@@ -34,6 +34,7 @@ class WP_Error { public $m; function __construct( $c, $m ) { $this->m = $m; } fu
 function _n( $s, $p, $n ) { return 1 == $n ? $s : $p; }
 function number_format_i18n( $n ) { return number_format( $n ); }
 function wp_enqueue_style() {}
+function wp_enqueue_script() {}
 function add_action() {}
 function add_shortcode() {}
 function shortcode_atts( $d, $a ) { return array_merge( $d, array_intersect_key( $a, $d ) ); }
@@ -53,6 +54,7 @@ foreach ( $sample as $key => $value ) {
 $css = file_get_contents( dirname( __DIR__ ) . '/assets/git-widget.css' );
 echo "<!doctype html><meta charset=utf-8><title>Git Widget preview</title><style>body{font-family:system-ui;margin:24px;max-width:1100px}"
 	. ".pair{display:grid;grid-template-columns:1fr 1fr;gap:24px}.dark{background:#1e1e1e;color:#ddd;padding:16px}{$css}</style>";
+echo '<script>' . file_get_contents( dirname( __DIR__ ) . '/assets/git-widget.js' ) . '</script>';
 $cases = json_decode( file_get_contents( __DIR__ . '/cases.json' ), true );
 foreach ( $cases as $label => $atts ) {
 	echo '<h2>' . esc_html( $label ) . '</h2><div class="pair"><div>' . gw_render( $atts ) . '</div><div class="dark">' . gw_render( $atts ) . '</div></div>';
