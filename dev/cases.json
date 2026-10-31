@@ -101,5 +101,30 @@
   "sections": "calendar",
   "calendar_chart": "day",
   "chart_fill": "no"
+ },
+ "Small screen: two rows joined, year list scrolls": {
+  "sections": "calendar",
+  "calendar_picker": "list",
+  "picker_position": "bottom",
+  "cal_small": "fused",
+  "picker_small": "scroll"
+ },
+ "Small screen: two rows with months between, year dropdown": {
+  "sections": "calendar",
+  "calendar_picker": "list",
+  "picker_position": "bottom",
+  "cal_small": "between",
+  "picker_small": "dropdown"
+ },
+ "Small screen: wrapped year list (default)": {
+  "sections": "calendar",
+  "calendar_picker": "list",
+  "picker_position": "bottom",
+  "cal_small": "scroll",
+  "picker_small": "wrap"
+ },
+ "Overview on mobile: 2 per row, small, short names": {
+  "sections": "overview",
+  "period": "all"
  }
 }

@@ -55,6 +55,11 @@ Same options, typed out:
 | `period` | last 12 months | `last`, `year` or `all` (activity overview) |
 | `calendar_picker` | `off` | `dropdown` or `list` lets visitors switch between the last 12 months, each year and all years |
 | `picker_position` | `right` | Where the year list goes: `left`, `right` or `bottom` |
+| `picker_small` | `wrap` | The year list on small screens: `wrap` (multiple rows), `scroll` (one row, newest first) or `dropdown` |
+| `tiles_cols_d` / `_t` / `_m` | `auto`, `auto`, `2` | Overview tiles per row on desktop, tablet and mobile: `auto`, `1`, `2`, `3`, `4` or `6` |
+| `tiles_size_d` / `_t` / `_m` | `normal`, `normal`, `small` | Tile text size: `normal`, `small` or `smaller` |
+| `tiles_text_d` / `_t` / `_m` | `full`, `full`, `short` | Tile labels: `full` ("Contributions"), `short` ("Contribs") or `none` (numbers only) |
+| `cal_small` | `scroll` | The calendar on small screens: `scroll`, `fused` (two 6-month rows pressed together, months above and below) or `between` (two rows with the months in between) |
 | `all_layout` | `joined` | All-time calendar as one `joined` block or `separate` years |
 | `calendar_chart` | `off` | Chart above the calendar: `year`, `month` or `day` |
 | `chart_style` | `line` | `line` or `bar` |
