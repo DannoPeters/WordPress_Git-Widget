@@ -26,3 +26,4 @@ require_once GW_DIR . 'includes/settings.php';
 require_once GW_DIR . 'includes/github.php';
 require_once GW_DIR . 'includes/render.php';
 require_once GW_DIR . 'includes/shortcode.php';
+require_once GW_DIR . 'includes/beaver-builder.php';
