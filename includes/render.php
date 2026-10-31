@@ -58,6 +58,18 @@ function gw_defaults() {
 		'calendar_period' => '',
 		'calendar_picker' => 'off',
 		'picker_position' => 'right',
+		'cal_small'       => 'scroll',
+		'picker_small'    => 'wrap',
+		// Overview tiles per screen size (d = desktop, t = tablet, m = mobile).
+		'tiles_cols_d'    => 'auto',
+		'tiles_cols_t'    => 'auto',
+		'tiles_cols_m'    => '2',
+		'tiles_size_d'    => 'normal',
+		'tiles_size_t'    => 'normal',
+		'tiles_size_m'    => 'small',
+		'tiles_text_d'    => 'full',
+		'tiles_text_t'    => 'full',
+		'tiles_text_m'    => 'short',
 		'all_layout'      => 'joined',
 		'calendar_chart'  => 'off',
 		'chart_style'     => 'line',
@@ -243,7 +255,27 @@ function gw_calendar_panel( $user, $view, $a ) {
 		: sprintf( _n( '%s contribution in the last year', '%s contributions in the last year', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ) );
 	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
 		. gw_trend_chart( gw_past_days( $cal['days'] ), $a )
-		. '<div class="gw-cal-scroll">' . gw_calendar_svg( $cal['days'], $title, max( 1, max( $cal['days'] ) ), $year ) . '</div>';
+		. gw_calendar_adaptive( $cal['days'], $title, max( 1, max( $cal['days'] ) ), $year, $a );
+}
+
+/**
+ * A calendar plus, when chosen, a two-row version that takes over on narrow screens.
+ *
+ * @param array    $days  Date => count.
+ * @param string   $title Accessible name.
+ * @param int      $max   Count that gets the darkest shade.
+ * @param int|null $year  Whole-year grid when set.
+ * @param array    $a     Widget options (cal_small: scroll|fused|between).
+ * @return string HTML.
+ */
+function gw_calendar_adaptive( $days, $title, $max, $year, $a ) {
+	$wide = '<div class="gw-cal-scroll">' . gw_calendar_svg( $days, $title, $max, $year ) . '</div>';
+	$mode = $a['cal_small'] ?? 'scroll';
+	if ( ! in_array( $mode, array( 'fused', 'between' ), true ) ) {
+		return $wide;
+	}
+	return '<div class="gw-cal-adapt"><div class="gw-cal-wide">' . $wide . '</div>'
+		. '<div class="gw-cal-narrow">' . gw_calendar_svg( $days, $title, $max, $year, $mode ) . '</div></div>';
 }
 
 /**
@@ -383,8 +415,17 @@ function gw_calendar_picker( $user, $start, $a ) {
 	gw_enqueue_script();
 	$position = in_array( $position, array( 'left', 'right', 'bottom' ), true ) ? $position : 'right';
 	if ( 'list' === $style ) {
+		$small  = in_array( $a['picker_small'], array( 'wrap', 'scroll', 'dropdown' ), true ) ? $a['picker_small'] : 'wrap';
 		$picker = '<div class="gw-cal-years-nav" role="tablist" aria-label="' . esc_attr__( 'Choose a year', 'git-widget' ) . '">' . $nav . '</div>';
-		$class  = 'gw-cal-picker gw-pick-list gw-pick-' . $position;
+		if ( 'dropdown' === $small ) {
+			// A dropdown twin that takes over on narrow screens; the script keeps both in step.
+			$options = '';
+			foreach ( $views as $key => $label ) {
+				$options .= '<option value="' . esc_attr( $key ) . '"' . ( $key === $start ? ' selected' : '' ) . '>' . esc_html( $label ) . '</option>';
+			}
+			$picker .= '<label class="gw-cal-select gw-cal-select-small"><span class="screen-reader-text">' . esc_html__( 'Choose a year', 'git-widget' ) . '</span><select>' . $options . '</select></label>';
+		}
+		$class = 'gw-cal-picker gw-pick-list gw-pick-' . $position . ' gw-small-' . $small;
 	} else {
 		$picker = '<label class="gw-cal-select"><span class="screen-reader-text">' . esc_html__( 'Choose a year', 'git-widget' ) . '</span><select>' . $nav . '</select></label>';
 		$class  = 'gw-cal-picker gw-pick-dropdown';
@@ -428,7 +469,7 @@ function gw_calendar_all_years( $user, $a = array() ) {
 		foreach ( $years as $y => $days ) {
 			$label = sprintf( _n( '%s contribution', '%s contributions', array_sum( $days ), 'git-widget' ), number_format_i18n( array_sum( $days ) ) );
 			$out  .= '<div class="gw-cal-year"><p class="gw-cal-year-head"><strong>' . (int) $y . '</strong><span>' . esc_html( $label ) . '</span></p>'
-				. '<div class="gw-cal-scroll">' . gw_calendar_svg( $days, $y . ': ' . $label, $max, (int) $y ) . '</div></div>';
+				. gw_calendar_adaptive( $days, $y . ': ' . $label, $max, (int) $y, $a ) . '</div>';
 		}
 		return $out . '</div>';
 	}
@@ -495,30 +536,53 @@ function gw_calendar_joined_svg( $years, $max, $title ) {
 /**
  * Draw one calendar grid: weeks as columns, days as rows (Sunday first), month labels on top.
  *
- * @param array    $days  Date => count, in date order.
- * @param string   $title Accessible name.
- * @param int      $max   Count that gets the darkest shade.
- * @param int|null $year  When set, the grid spans the whole year (Jan 1 to Dec 31) even past today.
+ * With $split the weeks are cut into two rows of about six months each, for narrow screens:
+ * "fused" puts the rows right together with the first half's months on top and the second half's underneath;
+ * "between" gives each row its months on top, so the second row's labels sit between the two.
+ *
+ * @param array       $days  Date => count, in date order.
+ * @param string      $title Accessible name.
+ * @param int         $max   Count that gets the darkest shade.
+ * @param int|null    $year  When set, the grid spans the whole year (Jan 1 to Dec 31) even past today.
+ * @param string|null $split null, "fused" or "between".
  * @return string SVG markup.
  */
-function gw_calendar_svg( $days, $title, $max, $year = null ) {
+function gw_calendar_svg( $days, $title, $max, $year = null, $split = null ) {
 	$dates = array_keys( $days );
 	$first = $year ? strtotime( "$year-01-01" ) : strtotime( $dates[0] );
 	$last  = $year ? strtotime( "$year-12-31" ) : strtotime( end( $dates ) );
 	$start = $first - (int) gmdate( 'w', $first ) * DAY_IN_SECONDS; // Back up to Sunday.
 	$cell  = 11;
 	$gap   = 3;
+	$step  = $cell + $gap;
 	$left  = 28;
-	$top   = 16;
+	$band  = 7 * $step;
+	$cols  = (int) floor( ( $last - $start ) / WEEK_IN_SECONDS ) + 1;
+	$half  = $split ? (int) ceil( $cols / 2 ) : $cols;
+	// Where each row of weeks starts, and where its month labels go.
+	if ( 'fused' === $split ) {
+		$tops   = array( 16, 16 + $band + 6 );
+		$labels = array( 10, 16 + 2 * $band + 6 + 9 );
+		$height = 16 + 2 * $band + 6 + 14;
+	} elseif ( 'between' === $split ) {
+		$tops   = array( 16, 16 + $band + 18 );
+		$labels = array( 10, 16 + $band + 12 );
+		$height = 16 + 2 * $band + 18;
+	} else {
+		$tops   = array( 16 );
+		$labels = array( 10 );
+		$height = 16 + $band;
+	}
 	$rects = '';
 	$month = '';
-	$col   = 0;
 	for ( $t = $start; $t <= $last; $t += DAY_IN_SECONDS ) {
 		$dow  = (int) gmdate( 'w', $t );
 		$col  = (int) floor( ( $t - $start ) / WEEK_IN_SECONDS );
+		$row  = $col >= $half ? 1 : 0;
+		$x    = $left + ( $col - $row * $half ) * $step;
 		$date = gmdate( 'Y-m-d', $t );
 		if ( 0 === $dow && (int) gmdate( 'j', $t ) <= 7 && $t >= $first ) {
-			$month .= '<text x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="10">' . esc_html( date_i18n( 'M', $t ) ) . '</text>';
+			$month .= '<text x="' . $x . '" y="' . $labels[ $row ] . '">' . esc_html( date_i18n( 'M', $t ) ) . '</text>';
 		}
 		if ( ! isset( $days[ $date ] ) ) {
 			continue;
@@ -526,16 +590,17 @@ function gw_calendar_svg( $days, $title, $max, $year = null ) {
 		$n      = $days[ $date ];
 		$level  = 0 === $n ? 0 : (int) min( 4, ceil( 4 * $n / $max ) );
 		$label  = sprintf( _n( '%1$s contribution on %2$s', '%1$s contributions on %2$s', $n, 'git-widget' ), number_format_i18n( $n ), date_i18n( 'M j, Y', $t ) );
-		$rects .= '<rect class="gw-l' . $level . '" x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="' . ( $top + $dow * ( $cell + $gap ) ) . '" width="' . $cell . '" height="' . $cell . '" rx="2"><title>' . esc_html( $label ) . '</title></rect>';
+		$rects .= '<rect class="gw-l' . $level . '" x="' . $x . '" y="' . ( $tops[ $row ] + $dow * $step ) . '" width="' . $cell . '" height="' . $cell . '" rx="2"><title>' . esc_html( $label ) . '</title></rect>';
 	}
-	$width  = $left + ( $col + 1 ) * ( $cell + $gap );
-	$height = $top + 7 * ( $cell + $gap );
-	$labels = '';
-	foreach ( array( 1 => __( 'Mon', 'git-widget' ), 3 => __( 'Wed', 'git-widget' ), 5 => __( 'Fri', 'git-widget' ) ) as $d => $l ) {
-		$labels .= '<text x="0" y="' . ( $top + $d * ( $cell + $gap ) + 9 ) . '">' . esc_html( $l ) . '</text>';
+	$width  = $left + $half * $step;
+	$wdays = '';
+	foreach ( $tops as $top ) {
+		foreach ( array( 1 => __( 'Mon', 'git-widget' ), 3 => __( 'Wed', 'git-widget' ), 5 => __( 'Fri', 'git-widget' ) ) as $d => $l ) {
+			$wdays .= '<text x="0" y="' . ( $top + $d * $step + 9 ) . '">' . esc_html( $l ) . '</text>';
+		}
 	}
-	return '<svg class="gw-cal wp-dark-mode-ignore" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
-		. '<g class="gw-axis">' . $month . $labels . '</g>' . $rects . '</svg>';
+	return '<svg class="gw-cal' . ( $split ? ' gw-cal-split' : '' ) . ' wp-dark-mode-ignore" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
+		. '<g class="gw-axis">' . $month . $wdays . '</g>' . $rects . '</svg>';
 }
 
 /**
@@ -617,6 +682,59 @@ function gw_overview_metrics() {
 		'organisations'  => __( 'Organisations', 'git-widget' ),
 		'member_since'   => __( 'Years on GitHub', 'git-widget' ),
 	);
+}
+
+/**
+ * Short names for the overview tiles, for small screens.
+ *
+ * @return array Metric key => short label.
+ */
+function gw_overview_short_labels() {
+	return array(
+		'contributions'  => __( 'Contribs', 'git-widget' ),
+		'active_days'    => __( 'Active days', 'git-widget' ),
+		'current_streak' => __( 'Streak', 'git-widget' ),
+		'longest_streak' => __( 'Best streak', 'git-widget' ),
+		'daily_average'  => __( 'Avg / day', 'git-widget' ),
+		'busiest_day'    => __( 'Best day', 'git-widget' ),
+		'commits'        => __( 'Commits', 'git-widget' ),
+		'pull_requests'  => __( 'PRs', 'git-widget' ),
+		'merged_prs'     => __( 'Merged', 'git-widget' ),
+		'issues_opened'  => __( 'Issues', 'git-widget' ),
+		'reviews'        => __( 'Reviews', 'git-widget' ),
+		'stars'          => __( 'Stars', 'git-widget' ),
+		'forks'          => __( 'Forks', 'git-widget' ),
+		'repositories'   => __( 'Repos', 'git-widget' ),
+		'languages'      => __( 'Languages', 'git-widget' ),
+		'followers'      => __( 'Followers', 'git-widget' ),
+		'following'      => __( 'Following', 'git-widget' ),
+		'organisations'  => __( 'Orgs', 'git-widget' ),
+		'member_since'   => __( 'Years', 'git-widget' ),
+	);
+}
+
+/**
+ * Classes that set the overview tiles' columns, text size and labels on desktop, tablet and mobile.
+ *
+ * @param array $a Widget options (tiles_cols_*, tiles_size_*, tiles_text_*).
+ * @return string Space-separated classes.
+ */
+function gw_tile_classes( $a ) {
+	$allowed = array(
+		'cols' => array( 'auto', '1', '2', '3', '4', '6' ),
+		'size' => array( 'normal', 'small', 'smaller' ),
+		'text' => array( 'full', 'short', 'none' ),
+	);
+	$classes = array();
+	foreach ( array( 'd', 't', 'm' ) as $dev ) {
+		foreach ( $allowed as $what => $ok ) {
+			$v = (string) ( $a[ "tiles_{$what}_{$dev}" ] ?? '' );
+			if ( in_array( $v, $ok, true ) ) {
+				$classes[] = "gw-$dev-$what-$v";
+			}
+		}
+	}
+	return implode( ' ', $classes );
 }
 
 /**
@@ -810,10 +928,13 @@ function gw_section_overview( $user, $a ) {
 	if ( ! $tiles ) {
 		return gw_error( __( 'None of the chosen metrics could be loaded.', 'git-widget' ) );
 	}
-	$out = '<p class="gw-label">' . esc_html( sprintf( __( 'Activity overview, %s', 'git-widget' ), $period['label'] ) ) . '</p><div class="gw-tiles">';
+	$out = '<p class="gw-label">' . esc_html( sprintf( __( 'Activity overview, %s', 'git-widget' ), $period['label'] ) ) . '</p><div class="gw-tiles ' . esc_attr( gw_tile_classes( $a ) ) . '">';
+	$short = gw_overview_short_labels();
 	foreach ( $tiles as $m => $t ) {
 		$shown = is_float( $t[0] ) ? number_format_i18n( $t[0], 1 ) : gw_num( (int) $t[0] );
-		$out  .= '<div class="gw-tile"><strong>' . esc_html( $shown ) . '</strong><span>' . esc_html( $all[ $m ] ) . '</span>'
+		// Both names go in the page; CSS picks one per screen size. The full name stays as a tooltip.
+		$out  .= '<div class="gw-tile" title="' . esc_attr( $all[ $m ] ) . '"><strong>' . esc_html( $shown ) . '</strong>'
+			. '<span class="gw-full">' . esc_html( $all[ $m ] ) . '</span><span class="gw-short">' . esc_html( $short[ $m ] ?? $all[ $m ] ) . '</span>'
 			. ( '' !== $t[1] ? '<em>' . esc_html( $t[1] ) . '</em>' : '' ) . '</div>';
 	}
 	return $out . '</div>';

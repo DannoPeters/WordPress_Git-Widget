@@ -52,8 +52,8 @@
 /* Overview tiles */
 .gw-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem}
 .gw-tile{border:1px solid var(--gw-line);border-radius:10px;padding:.7rem .8rem}
-.gw-tile strong{display:block;font-size:1.5rem;line-height:1.1;color:var(--gw-accent)}
-.gw-tile span{font-size:.8rem;color:var(--gw-muted)}
+.gw-tile strong{display:block;font-size:1.5em;line-height:1.1;color:var(--gw-accent)}
+.gw-tile span{font-size:.8em;color:var(--gw-muted)}
 .gw-small{margin:.5rem 0 0;font-size:.85rem;color:var(--gw-muted)}
 
 /* Contribution types: four shades of the accent, darkest first */
@@ -114,7 +114,7 @@
 .gw-area polyline{fill:none;stroke:var(--gw-accent);stroke-width:2.5;stroke-linejoin:round}
 
 .gw-tile span{display:block}
-.gw-tile em{display:block;font-style:normal;font-size:.72rem;color:var(--gw-muted);opacity:.85}
+.gw-tile em{display:block;font-style:normal;font-size:.72em;color:var(--gw-muted);opacity:.85}
 
 /* All-time calendar: one block per year */
 .gw-cal-years{display:grid;gap:.9rem}
@@ -140,7 +140,6 @@
 .gw-cal-panel[hidden]{display:none}
 .gw-cal-panels,.gw-cal-panel,.gw-cal-year{min-width:0}
 .gw .screen-reader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@media (max-width:640px){.gw-pick-left,.gw-pick-right{grid-template-columns:minmax(0,1fr)}.gw-pick-left .gw-cal-years-nav,.gw-pick-right .gw-cal-years-nav{order:0;flex-direction:row;overflow-x:auto;max-height:none}}
 
 /* Joined all-years calendar */
 .gw-cal-joined{min-width:620px}
@@ -156,3 +155,27 @@
 .gw-trend-bar{fill:var(--gw-accent)}
 .gw-trend .gw-lab,.gw-trend .gw-val{font-size:12px}
 .gw-trend{max-height:220px}
+
+/* Small screens: each section measures its own width, so a narrow column in a wide page adapts too */
+.gw-section{container-type:inline-size}
+.gw-cal-narrow,.gw-cal-select-small{display:none}
+.gw-cal-split{min-width:0}
+.gw-cal-select-small select{font:inherit;font-size:.85rem;padding:.3rem 1.8rem .3rem .6rem;border:1px solid var(--gw-line);border-radius:8px;background:transparent;color:inherit}
+.gw-cal-select-small select option{color:#1f2328;background:#fff}
+@container (max-width:600px){
+.gw-cal-adapt .gw-cal-wide{display:none}
+.gw-cal-adapt .gw-cal-narrow{display:block}
+.gw-pick-left,.gw-pick-right{grid-template-columns:minmax(0,1fr)}
+.gw-pick-list .gw-cal-years-nav{flex-direction:row;max-height:none}
+.gw-pick-left .gw-cal-years-nav,.gw-pick-right .gw-cal-years-nav{order:0}
+.gw-small-wrap .gw-cal-years-nav{flex-wrap:wrap}
+.gw-small-scroll .gw-cal-years-nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:.2rem}
+.gw-small-dropdown .gw-cal-years-nav{display:none}
+.gw-small-dropdown .gw-cal-select-small{display:block;justify-self:end;order:0}
+}
+
+/* Overview tiles per screen size: mobile up to 600px, tablet up to 1024px, desktop above */
+.gw-tile .gw-short{display:none}
+@media (min-width:1025px){.gw-tiles.gw-d-cols-auto{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.gw-tiles.gw-d-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.gw-tiles.gw-d-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.gw-tiles.gw-d-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.gw-tiles.gw-d-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.gw-tiles.gw-d-cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}.gw-tiles.gw-d-size-normal .gw-tile{font-size:1em}.gw-tiles.gw-d-size-small .gw-tile{font-size:.85em;padding:.55rem .65rem}.gw-tiles.gw-d-size-smaller .gw-tile{font-size:.72em;padding:.45rem .55rem}.gw-tiles.gw-d-text-full .gw-full{display:block}.gw-tiles.gw-d-text-full .gw-short{display:none}.gw-tiles.gw-d-text-short .gw-full{display:none}.gw-tiles.gw-d-text-short .gw-short{display:block}.gw-tiles.gw-d-text-none .gw-full,.gw-tiles.gw-d-text-none .gw-short,.gw-tiles.gw-d-text-none em{display:none}}
+@media (min-width:601px) and (max-width:1024px){.gw-tiles.gw-t-cols-auto{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.gw-tiles.gw-t-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.gw-tiles.gw-t-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.gw-tiles.gw-t-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.gw-tiles.gw-t-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.gw-tiles.gw-t-cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}.gw-tiles.gw-t-size-normal .gw-tile{font-size:1em}.gw-tiles.gw-t-size-small .gw-tile{font-size:.85em;padding:.55rem .65rem}.gw-tiles.gw-t-size-smaller .gw-tile{font-size:.72em;padding:.45rem .55rem}.gw-tiles.gw-t-text-full .gw-full{display:block}.gw-tiles.gw-t-text-full .gw-short{display:none}.gw-tiles.gw-t-text-short .gw-full{display:none}.gw-tiles.gw-t-text-short .gw-short{display:block}.gw-tiles.gw-t-text-none .gw-full,.gw-tiles.gw-t-text-none .gw-short,.gw-tiles.gw-t-text-none em{display:none}}
+@media (max-width:600px){.gw-tiles.gw-m-cols-auto{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}.gw-tiles.gw-m-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}.gw-tiles.gw-m-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.gw-tiles.gw-m-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.gw-tiles.gw-m-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}.gw-tiles.gw-m-cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}.gw-tiles.gw-m-size-normal .gw-tile{font-size:1em}.gw-tiles.gw-m-size-small .gw-tile{font-size:.85em;padding:.55rem .65rem}.gw-tiles.gw-m-size-smaller .gw-tile{font-size:.72em;padding:.45rem .55rem}.gw-tiles.gw-m-text-full .gw-full{display:block}.gw-tiles.gw-m-text-full .gw-short{display:none}.gw-tiles.gw-m-text-short .gw-full{display:none}.gw-tiles.gw-m-text-short .gw-short{display:block}.gw-tiles.gw-m-text-none .gw-full,.gw-tiles.gw-m-text-none .gw-short,.gw-tiles.gw-m-text-none em{display:none}}
