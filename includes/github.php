@@ -315,19 +315,21 @@ function gw_achievements( $user ) {
  */
 function gw_parse_achievements_html( $html, $user ) {
 	$out = array();
-	if ( preg_match_all( '/<img[^>]+alt="Achievement: ([^"]+)"[^>]+src="([^"]+)"[^>]*>(.{0,600})/s', $html, $m, PREG_SET_ORDER ) ) {
+	// Find each badge image whatever the attribute order, then look just after it for the tier label (x2, x3...).
+	if ( preg_match_all( '/<img\b[^>]*\balt="Achievement: ([^"]+)"[^>]*>/', $html, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE ) ) {
 		foreach ( $m as $a ) {
-			$name = html_entity_decode( $a[1] );
-			if ( isset( $out[ $name ] ) ) {
+			$tag  = $a[0][0];
+			$name = html_entity_decode( $a[1][0] );
+			if ( isset( $out[ $name ] ) || ! preg_match( '/\bsrc="([^"]+)"/', $tag, $src ) ) {
 				continue;
 			}
-			$count        = preg_match( '/achievement-tier-label[^>]*>\s*x(\d+)/', $a[3], $c ) ? (int) $c[1] : 1;
-			$slug         = sanitize_title( $name );
+			$after        = substr( $html, $a[0][1] + strlen( $tag ), 800 );
+			$count        = preg_match( '/achievement-tier-label[^>]*>\s*x(\d+)/', $after, $c ) ? (int) $c[1] : 1;
 			$out[ $name ] = array(
 				'name'  => $name,
-				'image' => $a[2],
+				'image' => html_entity_decode( $src[1] ),
 				'count' => $count,
-				'url'   => 'https://github.com/' . rawurlencode( $user ) . '?achievement=' . str_replace( '-', '-', $slug ) . '&tab=achievements',
+				'url'   => 'https://github.com/' . rawurlencode( $user ) . '?tab=achievements&achievement=' . sanitize_title( $name ),
 			);
 		}
 	}
