@@ -35,6 +35,7 @@ function number_format_i18n( $n ) { return number_format( $n ); }
 function wp_enqueue_style() {}
 function add_action() {}
 function add_shortcode() {}
+function shortcode_atts( $d, $a ) { return array_merge( $d, array_intersect_key( $a, $d ) ); }
 function plugin_dir_path( $f ) { return dirname( $f ) . '/'; }
 function plugin_dir_url( $f ) { return ''; }
 function date_i18n( $f, $t ) { return gmdate( $f, $t ); }
@@ -55,3 +56,5 @@ $cases = json_decode( file_get_contents( __DIR__ . '/cases.json' ), true );
 foreach ( $cases as $label => $atts ) {
 	echo '<h2>' . esc_html( $label ) . '</h2><div class="pair"><div>' . gw_render( $atts ) . '</div><div class="dark">' . gw_render( $atts ) . '</div></div>';
 }
+echo '<h2>Shortcodes side by side</h2><div class="pair"><div>' . gw_shortcode( array( 'sections' => 'profile,organisations' ) ) . '</div><div>'
+	. gw_shortcode( array( 'sections' => 'overview,calendar', 'theme' => 'dark', 'accent' => '#8250df', 'title' => 'This year on GitHub' ) ) . '</div></div>';
