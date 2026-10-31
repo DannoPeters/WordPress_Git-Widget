@@ -9,7 +9,7 @@ Pick any of these sections, in any order, in one widget or spread across several
 - **Profile:** your photo, name, bio, company, location, website, followers and repositories
 - **Organisations:** the orgs you publicly belong to, as little logo chips
 - **Contribution calendar:** the familiar green squares, in your accent colour, with empty days left transparent so it looks right in dark mode
-- **Activity overview:** a set of tiles you choose (see below) for the last 12 months, a specific year, or all time
+- **Activity overview:** tiles with your stats for the last 12 months, a specific year, or all time. Leave it in Awesome Mode and it picks your most impressive numbers for you, or choose your own
 - **Contribution types:** commits vs pull requests vs issues vs code reviews, as GitHub's cross chart or a bar
 - **Contributions per month** and **per year:** bar charts
 - **Contributions over time:** a running total, because watching a line go up is very satisfying
@@ -53,7 +53,8 @@ Same options, typed out:
 | `title` | none | A heading above the widget |
 | `year` | last 12 months | e.g. `2025` |
 | `period` | last 12 months | `last`, `year` or `all` (activity overview) |
-| `metrics` | contributions, active days, streaks | See the list below |
+| `metrics` | `awesome` | `awesome`, or a comma-separated list from below |
+| `awesome_count` | `6` | How many stats Awesome Mode shows (2 to 12) |
 | `years` | `6` | Years in the yearly chart (1 to 20) |
 | `count` | `6` | Repositories or languages to list |
 | `accent` | `#2da44e` | Any hex colour |
@@ -65,7 +66,7 @@ Same options, typed out:
 
 ## Activity Overview Metrics
 
-Mix and match any of these:
+By default the overview runs in **Awesome Mode**: it compares each of your numbers with what counts as a strong result on GitHub (1,000 contributions a year, 100 stars, a 30 day streak and so on) and shows the ones you shine at most, always starting with your contributions. Prefer to pick? In Beaver Builder switch *Which stats* to *Choose my own* and flip on whatever you like, or list them in the shortcode:
 
 `contributions`, `active_days`, `current_streak`, `longest_streak`, `daily_average`, `busiest_day`, `commits`, `pull_requests`, `merged_prs`, `issues_opened`, `reviews`, `stars`, `forks`, `repositories`, `languages`, `followers`, `following`, `organisations`, `member_since`
 
