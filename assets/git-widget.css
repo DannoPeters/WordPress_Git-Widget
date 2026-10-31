@@ -1,0 +1,34 @@
+/* Git Widget. Colours follow the surrounding text so it works in light and dark themes; --gw-accent sets the highlight. */
+.gw{--gw-accent:#2da44e;--gw-muted:color-mix(in srgb,currentColor 60%,transparent);--gw-line:color-mix(in srgb,currentColor 18%,transparent);--gw-soft:color-mix(in srgb,currentColor 6%,transparent);font-size:15px;line-height:1.5;max-width:100%}
+.gw *{box-sizing:border-box}
+.gw-title{margin:0 0 .8rem}
+.gw-sections{display:grid;gap:1.2rem}
+.gw-layout-grid .gw-sections{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:start}
+.gw-section{min-width:0}
+.gw-label{margin:0 0 .5rem;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gw-muted)}
+.gw-note{font-size:.85rem;padding:.5rem .75rem;border-left:3px solid #d29922;background:var(--gw-soft)}
+.gw a{color:inherit;text-decoration:none}
+.gw a:hover,.gw a:focus-visible{color:var(--gw-accent)}
+.gw-footer{margin:.8rem 0 0;font-size:.85rem}
+.gw-footer a{color:var(--gw-accent)}
+
+/* Profile */
+.gw-profile{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap}
+.gw-avatar img{display:block;width:96px;height:96px;border-radius:50%;border:1px solid var(--gw-line);object-fit:cover}
+.gw-profile-text{flex:1;min-width:200px}
+.gw-profile-text p{margin:0 0 .3rem}
+.gw-name{font-size:1.3rem;font-weight:700;line-height:1.2}
+.gw-login{color:var(--gw-muted)}
+.gw-meta{color:var(--gw-muted);font-size:.9rem}
+.gw-counts{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.9rem;color:var(--gw-muted)}
+.gw-counts strong{color:initial;color:currentColor}
+
+/* Organisations */
+.gw-orgs{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.5rem}
+.gw-orgs a{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .6rem .25rem .25rem;border:1px solid var(--gw-line);border-radius:999px;font-size:.85rem}
+.gw-orgs img{width:24px;height:24px;border-radius:6px}
+
+/* Forced themes */
+.gw-theme-light{color:#1f2328;background:#fff}
+.gw-theme-dark{color:#e6edf3;background:#0d1117}
+.gw-theme-light,.gw-theme-dark{padding:1rem;border-radius:12px}
