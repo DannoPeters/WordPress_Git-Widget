@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 (2026-10-31)
+
+- Empty calendar days are transparent with a faint outline, so they look right in dark mode (#13, #14)
+- README rewritten and brought up to date (#15)
+
 ## 0.1.3 (2026-10-31)
 
 - Activity overview: choose from 19 metrics (contributions, streaks, commits, pull requests opened and merged, issues opened, reviews, stars, forks, repositories, languages, followers, organisations, years on GitHub and more)
