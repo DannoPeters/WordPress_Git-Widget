@@ -26,6 +26,7 @@ function gw_sections() {
 		'types'         => __( 'Contribution types (commits, pull requests, issues, reviews)', 'git-widget' ),
 		'monthly'       => __( 'Contributions per month (chart)', 'git-widget' ),
 		'yearly'        => __( 'Contributions per year (chart)', 'git-widget' ),
+		'achievements'  => __( 'Achievements', 'git-widget' ),
 	);
 }
 
@@ -417,6 +418,31 @@ function gw_section_yearly( $user, $a ) {
 	}
 	$title = __( 'Contributions per year', 'git-widget' );
 	return '<p class="gw-label">' . esc_html( $title ) . '</p>' . gw_bar_chart( array_map( 'strval', $years ), $values, $title );
+}
+
+/**
+ * Achievement badges with their tier count (x2, x3...).
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options.
+ * @return string HTML, empty when there are none.
+ */
+function gw_section_achievements( $user, $a ) {
+	$list = gw_achievements( $user );
+	if ( is_wp_error( $list ) ) {
+		return gw_error( $list );
+	}
+	if ( ! $list ) {
+		return '';
+	}
+	$out = '<p class="gw-label">' . esc_html__( 'Achievements', 'git-widget' ) . '</p><ul class="gw-badges">';
+	foreach ( $list as $b ) {
+		$out .= '<li><a href="' . esc_url( $b['url'] ) . '" target="_blank" rel="noopener" title="' . esc_attr( $b['name'] ) . '">'
+			. '<img src="' . esc_url( $b['image'] ) . '" alt="' . esc_attr( $b['name'] ) . '" width="64" height="64" loading="lazy">'
+			. ( $b['count'] > 1 ? '<span class="gw-tier">x' . (int) $b['count'] . '</span>' : '' )
+			. '<span class="gw-badge-name">' . esc_html( $b['name'] ) . '</span></a></li>';
+	}
+	return $out . '</ul>';
 }
 
 /**

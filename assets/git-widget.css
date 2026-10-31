@@ -72,3 +72,12 @@
 .gw-chart text{font-size:11px;text-anchor:middle;fill:var(--gw-muted)}
 .gw-chart .gw-val{fill:currentColor;font-weight:600}
 .gw-baseline{stroke:var(--gw-line);stroke-width:1}
+
+/* Achievements */
+.gw-badges{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.8rem}
+.gw-badges a{position:relative;display:flex;flex-direction:column;align-items:center;width:76px;text-align:center}
+.gw-badges img{width:64px;height:64px;transition:transform .15s}
+.gw-badges a:hover img{transform:scale(1.08)}
+.gw-tier{position:absolute;top:40px;right:2px;font-size:.7rem;font-weight:700;padding:0 .35rem;border-radius:999px;background:var(--gw-accent);color:#fff}
+.gw-badge-name{font-size:.72rem;line-height:1.2;margin-top:.25rem;color:var(--gw-muted)}
+@media (prefers-reduced-motion:reduce){.gw-badges img{transition:none}}
