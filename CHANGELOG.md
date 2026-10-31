@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 (2026-10-31)
+
+- Awesome Mode: the activity overview picks your most impressive stats automatically (new default)
+- Beaver Builder: an On/Off switch for every overview stat instead of a scrolling list (#16)
+
 ## 0.1.4 (2026-10-31)
 
 - Empty calendar days are transparent with a faint outline, so they look right in dark mode (#13, #14)
