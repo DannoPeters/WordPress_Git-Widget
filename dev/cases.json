@@ -8,5 +8,8 @@
  "Overview and contribution types (grid layout)": {
   "sections": "overview,types",
   "layout": "grid"
+ },
+ "Monthly and yearly charts": {
+  "sections": "monthly,yearly"
  }
 }
