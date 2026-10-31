@@ -115,3 +115,9 @@
 
 .gw-tile span{display:block}
 .gw-tile em{display:block;font-style:normal;font-size:.72rem;color:var(--gw-muted);opacity:.85}
+
+/* All-time calendar: one block per year */
+.gw-cal-years{display:grid;gap:.9rem}
+.gw-cal-year-head{display:flex;align-items:baseline;gap:.6rem;margin:0 0 .2rem;font-size:.85rem}
+.gw-cal-year-head strong{font-size:1rem}
+.gw-cal-year-head span{color:var(--gw-muted)}
