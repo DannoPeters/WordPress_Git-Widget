@@ -333,3 +333,20 @@ function gw_parse_achievements_html( $html, $user ) {
 	}
 	return array_values( $out );
 }
+
+/**
+ * Total contributions in one calendar year (cached separately so the yearly chart stays cheap).
+ *
+ * @param string $user GitHub username.
+ * @param int    $year Year.
+ * @return int|WP_Error
+ */
+function gw_year_total( $user, $year ) {
+	return gw_cached(
+		"yeartotal:$user:$year",
+		function () use ( $user, $year ) {
+			$cal = gw_calendar( $user, (int) $year );
+			return is_wp_error( $cal ) ? $cal : (int) $cal['total'];
+		}
+	);
+}

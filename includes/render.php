@@ -24,6 +24,8 @@ function gw_sections() {
 		'calendar'      => __( 'Contribution calendar', 'git-widget' ),
 		'overview'      => __( 'Activity overview (totals and streaks)', 'git-widget' ),
 		'types'         => __( 'Contribution types (commits, pull requests, issues, reviews)', 'git-widget' ),
+		'monthly'       => __( 'Contributions per month (chart)', 'git-widget' ),
+		'yearly'        => __( 'Contributions per year (chart)', 'git-widget' ),
 	);
 }
 
@@ -42,6 +44,7 @@ function gw_defaults() {
 		'layout'    => 'stack',
 		'title'     => '',
 		'show_link' => 'yes',
+		'years'     => 6,
 	);
 }
 
@@ -332,6 +335,88 @@ function gw_section_types( $user, $a ) {
 		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Plus %s contributions to private repositories.', 'git-widget' ), number_format_i18n( $t['private'] ) ) ) . '</p>';
 	}
 	return $out;
+}
+
+/**
+ * A simple bar chart as SVG, with values above the bars and labels below.
+ *
+ * @param string[] $labels Bar labels.
+ * @param int[]    $values Bar values.
+ * @param string   $title  Accessible name.
+ * @return string SVG markup.
+ */
+function gw_bar_chart( $labels, $values, $title ) {
+	$n      = max( 1, count( $values ) );
+	$max    = max( 1, max( $values ) );
+	$w      = 600;
+	$h      = 180;
+	$bottom = 22;
+	$top    = 16;
+	$slot   = $w / $n;
+	$bar    = min( 46, $slot * 0.62 );
+	$out    = '<svg class="gw-chart" viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="' . esc_attr( $title ) . '">'
+		. '<line class="gw-baseline" x1="0" x2="' . $w . '" y1="' . ( $h - $bottom ) . '" y2="' . ( $h - $bottom ) . '"/>';
+	foreach ( array_values( $values ) as $i => $v ) {
+		$bh   = ( $h - $bottom - $top ) * $v / $max;
+		$x    = $i * $slot + ( $slot - $bar ) / 2;
+		$y    = $h - $bottom - $bh;
+		$out .= '<g><title>' . esc_html( $labels[ $i ] . ': ' . number_format_i18n( $v ) ) . '</title>'
+			. '<rect x="' . round( $x, 1 ) . '" y="' . round( $y, 1 ) . '" width="' . round( $bar, 1 ) . '" height="' . round( max( $bh, $v ? 1 : 0 ), 1 ) . '" rx="3"/>'
+			. ( $v ? '<text class="gw-val" x="' . round( $x + $bar / 2, 1 ) . '" y="' . round( $y - 4, 1 ) . '">' . esc_html( gw_num( $v ) ) . '</text>' : '' )
+			. '<text class="gw-lab" x="' . round( $x + $bar / 2, 1 ) . '" y="' . ( $h - 6 ) . '">' . esc_html( $labels[ $i ] ) . '</text></g>';
+	}
+	return $out . '</svg>';
+}
+
+/**
+ * Contributions per month for the last 12 months (or a chosen year).
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_monthly( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) ) {
+		return gw_error( $cal );
+	}
+	$months = array();
+	foreach ( $cal['days'] as $date => $n ) {
+		$key            = substr( $date, 0, 7 );
+		$months[ $key ] = ( $months[ $key ] ?? 0 ) + $n;
+	}
+	$months = array_slice( $months, -12, 12, true );
+	$labels = array_map(
+		function ( $m ) {
+			return date_i18n( 'M', strtotime( $m . '-01' ) );
+		},
+		array_keys( $months )
+	);
+	$title  = $year ? sprintf( __( 'Contributions per month in %d', 'git-widget' ), $year ) : __( 'Contributions per month', 'git-widget' );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p>' . gw_bar_chart( $labels, array_values( $months ), $title );
+}
+
+/**
+ * Contributions per year for the most recent years (option "years", default 6).
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (years).
+ * @return string HTML.
+ */
+function gw_section_yearly( $user, $a ) {
+	$years  = array_slice( gw_contribution_years( $user ), 0, max( 1, min( 20, (int) $a['years'] ) ) );
+	$years  = array_reverse( $years );
+	$values = array();
+	foreach ( $years as $y ) {
+		$t        = gw_year_total( $user, $y );
+		$values[] = is_wp_error( $t ) ? 0 : $t;
+	}
+	if ( ! array_sum( $values ) ) {
+		return gw_error( __( 'No yearly contribution data found.', 'git-widget' ) );
+	}
+	$title = __( 'Contributions per year', 'git-widget' );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p>' . gw_bar_chart( array_map( 'strval', $years ), $values, $title );
 }
 
 /**
