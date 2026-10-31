@@ -53,7 +53,8 @@ function gw_defaults() {
 		'types_style' => 'axes',
 		'bio_breaks'  => 'yes',
 		'count'       => 6,
-		'metrics'     => 'contributions,active_days,current_streak,longest_streak',
+		'metrics'       => 'awesome',
+		'awesome_count' => 6,
 		'period'      => '',
 	);
 }
@@ -344,106 +345,183 @@ function gw_period( $a ) {
 }
 
 /**
- * Activity overview: a row of tiles. Which metrics (option "metrics") and the time frame (option "period":
- * last 12 months, a year, or all time) are configurable. Repository and profile figures are always current.
+ * Work out one overview metric. Data is loaded lazily and shared through $ctx, so each source is fetched
+ * at most once per widget.
+ *
+ * @param string $m      Metric key from gw_overview_metrics().
+ * @param string $user   GitHub username.
+ * @param array  $period From gw_period().
+ * @param array  $ctx    Shared cache for this widget (by reference).
+ * @return array|null [value (int|float), sub-line] or null when unavailable.
+ */
+function gw_overview_value( $m, $user, $period, &$ctx ) {
+	$cal = function () use ( $user, $period, &$ctx ) {
+		if ( ! array_key_exists( 'st', $ctx ) ) {
+			$c         = 'all' === $period['kind'] ? gw_calendar_all( $user ) : gw_calendar( $user, $period['year'] );
+			$ctx['st'] = is_wp_error( $c ) ? null : gw_calendar_stats( $c['days'] );
+		}
+		return $ctx['st'];
+	};
+	$repos = function () use ( $user, &$ctx ) {
+		if ( ! array_key_exists( 'repos', $ctx ) ) {
+			$r            = gw_repos( $user );
+			$ctx['repos'] = is_wp_error( $r ) ? null : $r;
+		}
+		return $ctx['repos'];
+	};
+	$profile = function () use ( $user, &$ctx ) {
+		if ( ! array_key_exists( 'profile', $ctx ) ) {
+			$p              = gw_profile( $user );
+			$ctx['profile'] = is_wp_error( $p ) ? null : $p;
+		}
+		return $ctx['profile'];
+	};
+	switch ( $m ) {
+		case 'contributions':
+		case 'active_days':
+		case 'current_streak':
+		case 'longest_streak':
+		case 'daily_average':
+		case 'busiest_day':
+			$st = $cal();
+			if ( ! $st ) {
+				return null;
+			}
+			$map = array(
+				'contributions'  => array( $st['total'], '' ),
+				'active_days'    => array( $st['active'], '' ),
+				'current_streak' => array( $st['current'], _n( 'day', 'days', $st['current'], 'git-widget' ) ),
+				'longest_streak' => array( $st['longest'], _n( 'day', 'days', $st['longest'], 'git-widget' ) ),
+				'daily_average'  => array( $st['active'] ? round( $st['total'] / $st['active'], 1 ) : 0, '' ),
+				'busiest_day'    => array( $st['best_count'], $st['best_day'] ? date_i18n( 'M j, Y', strtotime( $st['best_day'] ) ) : '' ),
+			);
+			return $map[ $m ];
+		case 'commits':
+		case 'pull_requests':
+		case 'merged_prs':
+		case 'issues_opened':
+		case 'reviews':
+			$n = gw_search_count( $user, $m, $period['range'] );
+			return is_wp_error( $n ) ? null : array( $n, '' );
+		case 'stars':
+		case 'forks':
+			$r = $repos();
+			return null === $r ? null : array( array_sum( array_column( $r, $m ) ), '' );
+		case 'languages':
+			$r = $repos();
+			return null === $r ? null : array( count( array_unique( array_filter( array_column( $r, 'language' ) ) ) ), '' );
+		case 'repositories':
+		case 'followers':
+		case 'following':
+			$p = $profile();
+			return null === $p ? null : array( $p[ 'repositories' === $m ? 'repos' : $m ], '' );
+		case 'organisations':
+			$p = $profile();
+			return null === $p ? null : array( count( $p['orgs'] ), '' );
+		case 'member_since':
+			$p = $profile();
+			return null === $p ? null : array( max( 0, (int) floor( ( time() - strtotime( $p['created'] ) ) / YEAR_IN_SECONDS ) ), sprintf( __( 'since %s', 'git-widget' ), date_i18n( 'Y', strtotime( $p['created'] ) ) ) );
+	}
+	return null;
+}
+
+/**
+ * What counts as a strong number for each metric, used by Awesome Mode. A value equal to its benchmark scores
+ * 1; the highest scores win. Benchmarks are for the last 12 months; all-time figures are scaled up.
+ *
+ * @return array Metric => benchmark.
+ */
+function gw_awesome_benchmarks() {
+	return array(
+		'contributions'  => 1000,
+		'active_days'    => 200,
+		'current_streak' => 14,
+		'longest_streak' => 30,
+		'daily_average'  => 6,
+		'busiest_day'    => 30,
+		'commits'        => 600,
+		'pull_requests'  => 60,
+		'merged_prs'     => 50,
+		'issues_opened'  => 40,
+		'reviews'        => 40,
+		'stars'          => 100,
+		'forks'          => 30,
+		'repositories'   => 30,
+		'languages'      => 6,
+		'followers'      => 100,
+		'following'      => 1000000, // Never chosen automatically.
+		'organisations'  => 3,
+		'member_since'   => 6,
+	);
+}
+
+/**
+ * Awesome Mode: score every metric against its benchmark and keep the best ones, always leading with
+ * contributions when there are any.
+ *
+ * @param string $user   GitHub username.
+ * @param array  $period From gw_period().
+ * @param array  $ctx    Shared cache (by reference).
+ * @param int    $how    How many tiles to show.
+ * @return array Metric => [value, sub-line], in catalogue order.
+ */
+function gw_awesome_metrics( $user, $period, &$ctx, $how = 6 ) {
+	$bench  = gw_awesome_benchmarks();
+	$scale  = 'all' === $period['kind'] ? 5 : 1;
+	$timed  = array( 'contributions', 'active_days', 'commits', 'pull_requests', 'merged_prs', 'issues_opened', 'reviews' );
+	$values = array();
+	$scores = array();
+	foreach ( array_keys( gw_overview_metrics() ) as $m ) {
+		$v = gw_overview_value( $m, $user, $period, $ctx );
+		if ( null === $v || ! $v[0] ) {
+			continue;
+		}
+		$values[ $m ] = $v;
+		$scores[ $m ] = $v[0] / ( $bench[ $m ] * ( in_array( $m, $timed, true ) ? $scale : 1 ) );
+	}
+	arsort( $scores );
+	$pick = array_slice( array_keys( $scores ), 0, $how );
+	if ( isset( $values['contributions'] ) && ! in_array( 'contributions', $pick, true ) ) {
+		array_pop( $pick );
+		array_unshift( $pick, 'contributions' );
+	}
+	// Show them in the usual order rather than by score, so related tiles sit together.
+	return array_intersect_key( $values, array_flip( $pick ) );
+}
+
+/**
+ * Activity overview: a row of tiles. "Awesome Mode" (the default) picks your most impressive figures
+ * automatically; otherwise the metrics listed in "metrics" are shown. The time frame ("period") can be the
+ * last 12 months, a year, or all time. Repository and profile figures are always current.
  *
  * @param string $user GitHub username.
- * @param array  $a    Widget options (metrics, period, year).
+ * @param array  $a    Widget options (metrics: "awesome" or a list, period, year, awesome_count).
  * @return string HTML.
  */
 function gw_section_overview( $user, $a ) {
 	$period = gw_period( $a );
 	$all    = gw_overview_metrics();
+	$ctx    = array();
 	$want   = array_values( array_intersect( array_map( 'trim', explode( ',', $a['metrics'] ) ), array_keys( $all ) ) );
+	$tiles  = array();
 	if ( ! $want ) {
-		$want = array( 'contributions', 'active_days', 'current_streak', 'longest_streak' );
-	}
-	$cal_keys = array( 'contributions', 'active_days', 'current_streak', 'longest_streak', 'daily_average', 'busiest_day' );
-	$st       = null;
-	if ( array_intersect( $want, $cal_keys ) ) {
-		$cal = 'all' === $period['kind'] ? gw_calendar_all( $user ) : gw_calendar( $user, $period['year'] );
-		if ( is_wp_error( $cal ) ) {
-			return gw_error( $cal );
-		}
-		$st = gw_calendar_stats( $cal['days'] );
-	}
-	$repos   = array_intersect( $want, array( 'stars', 'forks', 'languages' ) ) ? gw_repos( $user ) : array();
-	$profile = array_intersect( $want, array( 'repositories', 'followers', 'following', 'organisations', 'member_since' ) ) ? gw_profile( $user ) : array();
-	$tiles   = array();
-	foreach ( $want as $m ) {
-		$value = null;
-		$sub   = '';
-		switch ( $m ) {
-			case 'contributions':
-				$value = $st['total'];
-				break;
-			case 'active_days':
-				$value = $st['active'];
-				break;
-			case 'current_streak':
-				$value = $st['current'];
-				$sub   = _n( 'day', 'days', $st['current'], 'git-widget' );
-				break;
-			case 'longest_streak':
-				$value = $st['longest'];
-				$sub   = _n( 'day', 'days', $st['longest'], 'git-widget' );
-				break;
-			case 'daily_average':
-				$value = $st['active'] ? round( $st['total'] / $st['active'], 1 ) : 0;
-				break;
-			case 'busiest_day':
-				$value = $st['best_count'];
-				$sub   = $st['best_day'] ? date_i18n( 'M j, Y', strtotime( $st['best_day'] ) ) : '';
-				break;
-			case 'commits':
-			case 'pull_requests':
-			case 'merged_prs':
-			case 'issues_opened':
-			case 'reviews':
-				$n     = gw_search_count( $user, $m, $period['range'] );
-				$value = is_wp_error( $n ) ? null : $n;
-				break;
-			case 'stars':
-			case 'forks':
-				if ( ! is_wp_error( $repos ) ) {
-					$value = array_sum( array_column( $repos, $m ) );
-				}
-				break;
-			case 'languages':
-				if ( ! is_wp_error( $repos ) ) {
-					$value = count( array_unique( array_filter( array_column( $repos, 'language' ) ) ) );
-				}
-				break;
-			case 'repositories':
-			case 'followers':
-			case 'following':
-				if ( ! is_wp_error( $profile ) ) {
-					$value = $profile[ 'repositories' === $m ? 'repos' : $m ];
-				}
-				break;
-			case 'organisations':
-				if ( ! is_wp_error( $profile ) ) {
-					$value = count( $profile['orgs'] );
-				}
-				break;
-			case 'member_since':
-				if ( ! is_wp_error( $profile ) ) {
-					$value = max( 0, (int) floor( ( time() - strtotime( $profile['created'] ) ) / YEAR_IN_SECONDS ) );
-					$sub   = sprintf( __( 'since %s', 'git-widget' ), date_i18n( 'Y', strtotime( $profile['created'] ) ) );
-				}
-				break;
-		}
-		if ( null !== $value ) {
-			$tiles[] = array( is_float( $value ) ? number_format_i18n( $value, 1 ) : gw_num( (int) $value ), $all[ $m ], $sub );
+		$tiles = gw_awesome_metrics( $user, $period, $ctx, max( 2, min( 12, (int) $a['awesome_count'] ) ) );
+	} else {
+		foreach ( $want as $m ) {
+			$v = gw_overview_value( $m, $user, $period, $ctx );
+			if ( null !== $v ) {
+				$tiles[ $m ] = $v;
+			}
 		}
 	}
 	if ( ! $tiles ) {
 		return gw_error( __( 'None of the chosen metrics could be loaded.', 'git-widget' ) );
 	}
 	$out = '<p class="gw-label">' . esc_html( sprintf( __( 'Activity overview, %s', 'git-widget' ), $period['label'] ) ) . '</p><div class="gw-tiles">';
-	foreach ( $tiles as $t ) {
-		$out .= '<div class="gw-tile"><strong>' . esc_html( $t[0] ) . '</strong><span>' . esc_html( $t[1] ) . '</span>'
-			. ( '' !== $t[2] ? '<em>' . esc_html( $t[2] ) . '</em>' : '' ) . '</div>';
+	foreach ( $tiles as $m => $t ) {
+		$shown = is_float( $t[0] ) ? number_format_i18n( $t[0], 1 ) : gw_num( (int) $t[0] );
+		$out  .= '<div class="gw-tile"><strong>' . esc_html( $shown ) . '</strong><span>' . esc_html( $all[ $m ] ) . '</span>'
+			. ( '' !== $t[1] ? '<em>' . esc_html( $t[1] ) . '</em>' : '' ) . '</div>';
 	}
 	return $out . '</div>';
 }

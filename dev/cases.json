@@ -51,5 +51,13 @@
   "sections": "overview",
   "period": "all",
   "metrics": "contributions,longest_streak,commits,pull_requests,stars,followers"
+ },
+ "Overview: Awesome Mode (default)": {
+  "sections": "overview"
+ },
+ "Overview: Awesome Mode, all time, 8 tiles": {
+  "sections": "overview",
+  "period": "all",
+  "awesome_count": 8
  }
 }
