@@ -31,5 +31,16 @@
  "Contribution types as bar": {
   "sections": "types",
   "types_style": "bar"
+ },
+ "New: languages and weekdays (grid)": {
+  "sections": "languages,weekdays",
+  "layout": "grid"
+ },
+ "New: top repositories": {
+  "sections": "repositories",
+  "count": 4
+ },
+ "New: running total": {
+  "sections": "cumulative"
  }
 }

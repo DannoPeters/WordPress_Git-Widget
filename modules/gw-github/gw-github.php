@@ -52,6 +52,7 @@ class GW_BB_Module extends FLBuilderModule {
 			'show_link' => $s['show_link'] ?? 'yes',
 			'types_style' => $s['types_style'] ?? 'axes',
 			'bio_breaks'  => $s['bio_breaks'] ?? 'yes',
+			'count'       => $s['count'] ?? 6,
 		);
 	}
 }
@@ -107,6 +108,12 @@ FLBuilder::register_module(
 							'label'   => __( 'Year', 'git-widget' ),
 							'options' => $gw_years,
 							'help'    => __( 'Used by the calendar, overview, contribution types and monthly chart.', 'git-widget' ),
+						),
+						'count' => array(
+							'type'    => 'unit',
+							'label'   => __( 'Repositories / languages to list', 'git-widget' ),
+							'default' => 6,
+							'slider'  => array( 'min' => 1, 'max' => 12, 'step' => 1 ),
 						),
 						'years' => array(
 							'type'    => 'unit',

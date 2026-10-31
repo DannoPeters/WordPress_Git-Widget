@@ -397,3 +397,39 @@ function gw_parse_activity_percentages( $html ) {
 		'reviews'       => (float) ( $p['Code review'] ?? 0 ),
 	);
 }
+
+/**
+ * Public repositories (owned, not forks), most recently pushed first. Up to 100.
+ *
+ * @param string $user GitHub username.
+ * @return array|WP_Error List of name, url, description, language, stars, forks, size, pushed, topics.
+ */
+function gw_repos( $user ) {
+	return gw_cached(
+		"repos:$user",
+		function () use ( $user ) {
+			$list = gw_get( 'https://api.github.com/users/' . rawurlencode( $user ) . '/repos?per_page=100&sort=pushed&type=owner' );
+			if ( is_wp_error( $list ) ) {
+				return $list;
+			}
+			$out = array();
+			foreach ( $list as $r ) {
+				if ( ! empty( $r['fork'] ) || ! empty( $r['archived'] ) && empty( $r['stargazers_count'] ) ) {
+					continue;
+				}
+				$out[] = array(
+					'name'        => $r['name'],
+					'url'         => $r['html_url'],
+					'description' => $r['description'] ?? '',
+					'language'    => $r['language'] ?? '',
+					'stars'       => (int) $r['stargazers_count'],
+					'forks'       => (int) $r['forks_count'],
+					'size'        => (int) $r['size'],
+					'pushed'      => $r['pushed_at'],
+					'topics'      => $r['topics'] ?? array(),
+				);
+			}
+			return $out;
+		}
+	);
+}

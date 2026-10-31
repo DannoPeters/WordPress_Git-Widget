@@ -27,6 +27,10 @@ function gw_sections() {
 		'monthly'       => __( 'Contributions per month (chart)', 'git-widget' ),
 		'yearly'        => __( 'Contributions per year (chart)', 'git-widget' ),
 		'achievements'  => __( 'Achievements', 'git-widget' ),
+		'languages'     => __( 'Top languages (donut chart)', 'git-widget' ),
+		'repositories'  => __( 'Top repositories', 'git-widget' ),
+		'weekdays'      => __( 'Activity by day of the week', 'git-widget' ),
+		'cumulative'    => __( 'Contributions over time (running total)', 'git-widget' ),
 	);
 }
 
@@ -48,6 +52,7 @@ function gw_defaults() {
 		'years'     => 6,
 		'types_style' => 'axes',
 		'bio_breaks'  => 'yes',
+		'count'       => 6,
 	);
 }
 
@@ -514,6 +519,175 @@ function gw_section_achievements( $user, $a ) {
 			. '<span class="gw-badge-name">' . esc_html( $b['name'] ) . '</span></a></li>';
 	}
 	return $out . '</ul>';
+}
+
+/**
+ * GitHub's colour for common languages, so the donut matches what people see on GitHub.
+ *
+ * @param string $lang Language name.
+ * @param int    $i    Position, used to pick a fallback colour.
+ * @return string Hex colour.
+ */
+function gw_lang_colour( $lang, $i ) {
+	$known = array( 'Python' => '#3572A5', 'JavaScript' => '#f1e05a', 'TypeScript' => '#3178c6', 'PHP' => '#4F5D95', 'C' => '#555555', 'C++' => '#f34b7d',
+		'C#' => '#178600', 'Java' => '#b07219', 'Go' => '#00ADD8', 'Rust' => '#dea584', 'Ruby' => '#701516', 'Shell' => '#89e051', 'HTML' => '#e34c26',
+		'CSS' => '#663399', 'Jupyter Notebook' => '#DA5B0B', 'MATLAB' => '#e16737', 'Arduino' => '#bd79d1', 'Kotlin' => '#A97BFF', 'Swift' => '#F05138',
+		'Dart' => '#00B4AB', 'Vue' => '#41b883', 'Lua' => '#000080', 'R' => '#198CE7', 'Dockerfile' => '#384d54', 'Processing' => '#0096D8', 'G-code' => '#D08CF2' );
+	$spare = array( '#2da44e', '#8250df', '#bf8700', '#0969da', '#cf222e', '#1b7c83', '#9a6700', '#6e7781' );
+	return $known[ $lang ] ?? $spare[ $i % count( $spare ) ];
+}
+
+/**
+ * Top languages across public repositories, as a donut with a legend. Each repository counts once for its
+ * main language, weighted by its size, so one huge repository doesn't hide the rest entirely.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (count = how many languages before "Other").
+ * @return string HTML.
+ */
+function gw_section_languages( $user, $a ) {
+	$repos = gw_repos( $user );
+	if ( is_wp_error( $repos ) ) {
+		return gw_error( $repos );
+	}
+	$weight = array();
+	foreach ( $repos as $r ) {
+		if ( $r['language'] ) {
+			$weight[ $r['language'] ] = ( $weight[ $r['language'] ] ?? 0 ) + sqrt( max( 1, $r['size'] ) );
+		}
+	}
+	if ( ! $weight ) {
+		return '';
+	}
+	arsort( $weight );
+	$top   = array_slice( $weight, 0, max( 1, min( 10, (int) $a['count'] ) ), true );
+	$other = array_sum( $weight ) - array_sum( $top );
+	if ( $other > 0 ) {
+		$top[ __( 'Other', 'git-widget' ) ] = $other;
+	}
+	$total  = array_sum( $top );
+	$r      = 60;
+	$circ   = 2 * M_PI * $r;
+	$offset = 0;
+	$arcs   = '';
+	$legend = '';
+	$i      = 0;
+	foreach ( $top as $lang => $w ) {
+		$share   = $w / $total;
+		$colour  = gw_lang_colour( $lang, $i );
+		$arcs   .= '<circle r="' . $r . '" cx="80" cy="80" fill="none" stroke="' . esc_attr( $colour ) . '" stroke-width="26" stroke-dasharray="' . round( $share * $circ, 2 ) . ' ' . round( $circ, 2 ) . '" stroke-dashoffset="' . round( -$offset, 2 ) . '"><title>' . esc_html( $lang . ': ' . round( 100 * $share ) . '%' ) . '</title></circle>';
+		$legend .= '<li><span class="gw-dot" style="background:' . esc_attr( $colour ) . '"></span>' . esc_html( $lang ) . '<span class="gw-pct">' . esc_html( round( 100 * $share ) . '%' ) . '</span></li>';
+		$offset += $share * $circ;
+		$i++;
+	}
+	$title = __( 'Top languages', 'git-widget' );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p><div class="gw-donut-wrap">'
+		. '<svg class="gw-donut" viewBox="0 0 160 160" role="img" aria-label="' . esc_attr( $title ) . '"><g transform="rotate(-90 80 80)">' . $arcs . '</g>'
+		. '<text x="80" y="76" class="gw-donut-n">' . count( $repos ) . '</text><text x="80" y="96" class="gw-donut-t">' . esc_html__( 'repos', 'git-widget' ) . '</text></svg>'
+		. '<ul class="gw-legend-list">' . $legend . '</ul></div>';
+}
+
+/**
+ * Top repositories by stars (then most recently updated), as cards.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (count).
+ * @return string HTML.
+ */
+function gw_section_repositories( $user, $a ) {
+	$repos = gw_repos( $user );
+	if ( is_wp_error( $repos ) ) {
+		return gw_error( $repos );
+	}
+	usort(
+		$repos,
+		function ( $x, $y ) {
+			return array( $y['stars'], $y['forks'], $y['pushed'] ) <=> array( $x['stars'], $x['forks'], $x['pushed'] );
+		}
+	);
+	$out = '<p class="gw-label">' . esc_html__( 'Top repositories', 'git-widget' ) . '</p><div class="gw-repos">';
+	foreach ( array_slice( $repos, 0, max( 1, min( 24, (int) $a['count'] ) ) ) as $i => $r ) {
+		$out .= '<a class="gw-repo" href="' . esc_url( $r['url'] ) . '" target="_blank" rel="noopener">'
+			. '<strong>' . esc_html( $r['name'] ) . '</strong>'
+			. ( $r['description'] ? '<span class="gw-repo-desc">' . esc_html( $r['description'] ) . '</span>' : '' )
+			. '<span class="gw-repo-meta">'
+			. ( $r['language'] ? '<span><span class="gw-dot" style="background:' . esc_attr( gw_lang_colour( $r['language'], $i ) ) . '"></span>' . esc_html( $r['language'] ) . '</span>' : '' )
+			. '<span title="' . esc_attr__( 'Stars', 'git-widget' ) . '">&#9733; ' . esc_html( gw_num( $r['stars'] ) ) . '</span>'
+			. '<span title="' . esc_attr__( 'Forks', 'git-widget' ) . '">&#8916; ' . esc_html( gw_num( $r['forks'] ) ) . '</span>'
+			. '<span>' . esc_html( sprintf( __( 'updated %s', 'git-widget' ), date_i18n( 'M Y', strtotime( $r['pushed'] ) ) ) ) . '</span>'
+			. '</span></a>';
+	}
+	return $out . '</div>';
+}
+
+/**
+ * Contributions by day of the week (Monday first), from the calendar: shows when you tend to work.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_weekdays( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) ) {
+		return gw_error( $cal );
+	}
+	$sum = array_fill( 1, 7, 0 );
+	foreach ( $cal['days'] as $date => $n ) {
+		$sum[ (int) gmdate( 'N', strtotime( $date ) ) ] += $n;
+	}
+	$labels = array();
+	for ( $d = 1; $d <= 7; $d++ ) {
+		$labels[] = date_i18n( 'D', strtotime( 'monday this week +' . ( $d - 1 ) . ' days' ) );
+	}
+	$title = __( 'Activity by day of the week', 'git-widget' );
+	$best  = array_search( max( $sum ), $sum, true );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p>' . gw_bar_chart( $labels, array_values( $sum ), $title )
+		. ( max( $sum ) ? '<p class="gw-small">' . esc_html( sprintf( __( 'Most active on %s.', 'git-widget' ), date_i18n( 'l', strtotime( 'monday this week +' . ( $best - 1 ) . ' days' ) ) ) ) . '</p>' : '' );
+}
+
+/**
+ * Running total of contributions across the calendar period, as an area chart.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_cumulative( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) ) {
+		return gw_error( $cal );
+	}
+	$days = $cal['days'];
+	if ( ! $days ) {
+		return '';
+	}
+	$w     = 600;
+	$h     = 160;
+	$n     = count( $days );
+	$max   = max( 1, array_sum( $days ) );
+	$run   = 0;
+	$pts   = array();
+	$i     = 0;
+	$ticks = '';
+	foreach ( $days as $date => $c ) {
+		$run  += $c;
+		$x     = round( $w * $i / max( 1, $n - 1 ), 1 );
+		$pts[] = $x . ',' . round( $h - 20 - ( $h - 34 ) * $run / $max, 1 );
+		if ( '01' === substr( $date, 8, 2 ) ) {
+			$ticks .= '<line class="gw-baseline" x1="' . $x . '" x2="' . $x . '" y1="' . ( $h - 20 ) . '" y2="' . ( $h - 16 ) . '"/><text class="gw-lab" x="' . $x . '" y="' . ( $h - 4 ) . '">' . esc_html( date_i18n( 'M', strtotime( $date ) ) ) . '</text>';
+		}
+		$i++;
+	}
+	$title = $year ? sprintf( __( 'Contributions through %d', 'git-widget' ), $year ) : __( 'Contributions over the last year', 'git-widget' );
+	$line  = implode( ' ', $pts );
+	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
+		. '<svg class="gw-chart gw-area" viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="' . esc_attr( $title . ': ' . number_format_i18n( $max ) ) . '">'
+		. '<polygon points="0,' . ( $h - 20 ) . ' ' . $line . ' ' . $w . ',' . ( $h - 20 ) . '"/><polyline points="' . $line . '"/>'
+		. '<line class="gw-baseline" x1="0" x2="' . $w . '" y1="' . ( $h - 20 ) . '" y2="' . ( $h - 20 ) . '"/>' . $ticks
+		. '<text class="gw-val" x="' . ( $w - 4 ) . '" y="10" style="text-anchor:end">' . esc_html( number_format_i18n( $max ) ) . '</text></svg>';
 }
 
 /**
