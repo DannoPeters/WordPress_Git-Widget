@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10 (2026-10-31)
+
+- Overview tile extras, each a separate switch: a tiny trend line, a change badge against the previous period, a highlighted tile (your best figure or one you pick) and links to GitHub (#26)
+
 ## 0.1.9 (2026-10-31)
 
 - Small-screen options for the calendar: keep scrolling, or split it into two 6-month rows, joined (months above and below) or with the months between (#24)
