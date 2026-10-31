@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8 (2026-10-31)
+
+- All-time calendar defaults to one joined block: a band per year, weekdays on the left, months along the top and year labels on the right; separate years remain an option
+- Optional chart above the calendar: contributions per year, month or day, as a line (shaded underneath by default) or bars (#22)
+
 ## 0.1.7 (2026-10-31)
 
 - Year picker for visitors on the contribution calendar: a dropdown, or a list of years on the left, right or bottom (#20)

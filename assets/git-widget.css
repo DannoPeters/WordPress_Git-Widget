@@ -141,3 +141,18 @@
 .gw-cal-panels,.gw-cal-panel,.gw-cal-year{min-width:0}
 .gw .screen-reader-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (max-width:640px){.gw-pick-left,.gw-pick-right{grid-template-columns:minmax(0,1fr)}.gw-pick-left .gw-cal-years-nav,.gw-pick-right .gw-cal-years-nav{order:0;flex-direction:row;overflow-x:auto;max-height:none}}
+
+/* Joined all-years calendar */
+.gw-cal-joined{min-width:620px}
+.gw-axis .gw-axis-t{font-size:9px;fill:var(--gw-muted)}
+.gw-axis .gw-year-t{font-size:13px;font-weight:700;fill:currentColor}
+.gw-cal-joined rect{fill:var(--gw-soft)}
+
+/* Trend chart above the calendar */
+.gw-trend{margin:.2rem 0 .6rem}
+.gw-trend-line{fill:none;stroke:var(--gw-accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.gw-trend-fill{fill:color-mix(in srgb,var(--gw-accent) 22%,transparent);stroke:none}
+.gw-trend-dot{fill:var(--gw-accent)}
+.gw-trend-bar{fill:var(--gw-accent)}
+.gw-trend .gw-lab,.gw-trend .gw-val{font-size:12px}
+.gw-trend{max-height:220px}

@@ -84,5 +84,22 @@
   "picker_position": "bottom",
   "calendar_period": "year",
   "year": "2024"
+ },
+ "All years joined (default) with a monthly line chart": {
+  "sections": "calendar",
+  "calendar_period": "all",
+  "calendar_chart": "month"
+ },
+ "All years separate with a yearly bar chart": {
+  "sections": "calendar",
+  "calendar_period": "all",
+  "all_layout": "separate",
+  "calendar_chart": "year",
+  "chart_style": "bar"
+ },
+ "Last 12 months with a daily line, no fill": {
+  "sections": "calendar",
+  "calendar_chart": "day",
+  "chart_fill": "no"
  }
 }
