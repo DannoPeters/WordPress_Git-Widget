@@ -89,6 +89,15 @@ FLBuilder::register_module(
 							'type'  => 'text',
 							'label' => __( 'Heading (optional)', 'git-widget' ),
 						),
+						'show_link' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Show "View on GitHub" link', 'git-widget' ),
+							'default' => 'yes',
+							'options' => array(
+								'yes' => __( 'On', 'git-widget' ),
+								'no'  => __( 'Off', 'git-widget' ),
+							),
+						),
 						'bio_breaks' => array(
 							'type'    => 'select',
 							'label'   => __( 'Underscores in bio', 'git-widget' ),
@@ -97,6 +106,16 @@ FLBuilder::register_module(
 								'yes' => __( 'Start a new line (__ or ____ = one line break)', 'git-widget' ),
 								'no'  => __( 'Show as typed', 'git-widget' ),
 							),
+						),
+					),
+				),
+				'credit' => array(
+					'title'  => __( 'About', 'git-widget' ),
+					'fields' => array(
+						'credit' => array(
+							'type'    => 'raw',
+							'content' => '<p style="margin:0 0 .4em">Made by <a href="https://github.com/DannoPeters" target="_blank" rel="noopener">@DannoPeters</a> in 🇨🇦</p>'
+								. '<p style="margin:0">Suggestions and bug reports are welcome on <a href="https://github.com/DannoPeters/WordPress_Git-Widget/issues" target="_blank" rel="noopener">GitHub</a> or at <a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters.ca</a>.</p>',
 						),
 					),
 				),
@@ -163,15 +182,6 @@ FLBuilder::register_module(
 							'options' => array(
 								'axes' => __( 'Cross chart (like GitHub)', 'git-widget' ),
 								'bar'  => __( 'Bar with counts', 'git-widget' ),
-							),
-						),
-						'show_link' => array(
-							'type'    => 'select',
-							'label'   => __( '"View on GitHub" link', 'git-widget' ),
-							'default' => 'yes',
-							'options' => array(
-								'yes' => __( 'Show', 'git-widget' ),
-								'no'  => __( 'Hide', 'git-widget' ),
 							),
 						),
 					),

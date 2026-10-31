@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 (2026-10-31)
+
+- "View on GitHub" link is now an On/Off switch on the Content tab
+- Beaver Builder settings show who made the plugin and where to send suggestions and bug reports
+
 ## 0.1.1 (2026-10-31)
 
 - Contribution types work without a token (profile activity overview) and default to GitHub's cross chart
