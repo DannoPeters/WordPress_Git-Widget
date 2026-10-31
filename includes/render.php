@@ -193,8 +193,51 @@ function gw_credit() {
 	 */
 	$out = (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
 	// The free edition always keeps the credit and its link; a filter may restyle it but not drop it.
-	return gw_is_pro() || false !== strpos( $out, 'dannopeters.ca' ) ? $out : $html;
+	if ( gw_is_pro() || false !== strpos( $out, 'dannopeters.ca' ) ) {
+		return $out;
+	}
+	// A filter tried to drop the credit on a free site: restore it, and let the admin know it's required.
+	if ( ! get_option( 'gw_credit_notice' ) ) {
+		update_option( 'gw_credit_notice', time(), false );
+	}
+	return $html;
 }
+
+/**
+ * Tell the site's administrators, in their own dashboard, that the credit line is required on the free edition.
+ * Shows only after something tried to remove it, and can be dismissed.
+ *
+ * @return void
+ */
+function gw_admin_notice() {
+	if ( gw_is_pro() || ! current_user_can( 'manage_options' ) || ! get_option( 'gw_credit_notice' ) || get_user_meta( get_current_user_id(), 'gw_credit_dismissed', true ) ) {
+		return;
+	}
+	$url = wp_nonce_url( add_query_arg( 'gw_dismiss', '1' ), 'gw_dismiss' );
+	echo '<div class="notice notice-warning"><p>'
+		. wp_kses_post(
+			sprintf(
+				/* translators: 1: plugin name, 2: link to the author's site */
+				__( '<strong>%1$s</strong> is free to use, and its licence asks that the small "Git Widget by DannoPeters" credit stays visible under each widget. It looks like something on this site hides it, so the plugin is showing it anyway. To use the widgets without the credit, see %2$s.', 'git-widget' ),
+				'Git Widget',
+				'<a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters.ca</a>'
+			)
+		)
+		. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Dismiss', 'git-widget' ) . '</a></p></div>';
+}
+add_action( 'admin_notices', 'gw_admin_notice' );
+
+/**
+ * Remember that an administrator dismissed the credit notice.
+ *
+ * @return void
+ */
+function gw_admin_notice_dismiss() {
+	if ( isset( $_GET['gw_dismiss'] ) && check_admin_referer( 'gw_dismiss' ) ) {
+		update_user_meta( get_current_user_id(), 'gw_credit_dismissed', 1 );
+	}
+}
+add_action( 'admin_init', 'gw_admin_notice_dismiss' );
 
 /**
  * Generator tag in the page head, the way WordPress and most plugins announce themselves.

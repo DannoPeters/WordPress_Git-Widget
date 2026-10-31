@@ -5,7 +5,7 @@
 - Licensed under GPL-3.0-or-later, with one additional term under section 7(b) (see ADDITIONAL-TERMS.md)
 - Widgets carry data-gw and data-gw-edition attributes, and pages get a Git Widget generator tag
 - The front-end script keeps the credit line readable in the free edition
-- tools/check-attribution.js reports Git Widget use on any page
+- When something removes the credit, the administrator sees a dashboard notice that it is required
 
 ## 0.2.0 (2026-10-31)
 

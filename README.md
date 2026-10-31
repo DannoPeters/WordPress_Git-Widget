@@ -134,4 +134,4 @@ The core exposes filters so add-ons can plug in: `gw_is_pro`, `gw_defaults`, `gw
 
 Git Widget is free software under the [GNU GPL, version 3 or later](LICENSE), with one additional term allowed by section 7(b): the "Git Widget by DannoPeters" credit under each widget has to stay visible, with its link. Restyle it however you like, just don't remove or hide it. The full wording is in [ADDITIONAL-TERMS.md](ADDITIONAL-TERMS.md). Sites with a Git Widget Pro licence don't need the credit.
 
-Want to see Git Widget on a page? `node tools/check-attribution.js https://example.com/` lists every widget it finds, its edition and version, and whether the credit is showing.
+If the credit is removed, the plugin restores it and, in the WordPress dashboard, lets the site's administrator know it's required.
