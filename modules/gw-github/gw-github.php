@@ -50,6 +50,8 @@ class GW_BB_Module extends FLBuilderModule {
 			'layout'    => $s['layout'] ?? 'stack',
 			'title'     => $s['title'] ?? '',
 			'show_link' => $s['show_link'] ?? 'yes',
+			'types_style' => $s['types_style'] ?? 'axes',
+			'bio_breaks'  => $s['bio_breaks'] ?? 'yes',
 		);
 	}
 }
@@ -85,6 +87,15 @@ FLBuilder::register_module(
 						'title'    => array(
 							'type'  => 'text',
 							'label' => __( 'Heading (optional)', 'git-widget' ),
+						),
+						'bio_breaks' => array(
+							'type'    => 'select',
+							'label'   => __( 'Underscores in bio', 'git-widget' ),
+							'default' => 'yes',
+							'options' => array(
+								'yes' => __( 'Start a new line (__ or ____ = one line break)', 'git-widget' ),
+								'no'  => __( 'Show as typed', 'git-widget' ),
+							),
 						),
 					),
 				),
@@ -136,6 +147,15 @@ FLBuilder::register_module(
 							'options' => array(
 								'stack' => __( 'Stacked', 'git-widget' ),
 								'grid'  => __( 'Side by side when there is room', 'git-widget' ),
+							),
+						),
+						'types_style' => array(
+							'type'    => 'select',
+							'label'   => __( 'Contribution types chart', 'git-widget' ),
+							'default' => 'axes',
+							'options' => array(
+								'axes' => __( 'Cross chart (like GitHub)', 'git-widget' ),
+								'bar'  => __( 'Bar with counts', 'git-widget' ),
 							),
 						),
 						'show_link' => array(

@@ -46,6 +46,8 @@ function gw_defaults() {
 		'title'     => '',
 		'show_link' => 'yes',
 		'years'     => 6,
+		'types_style' => 'axes',
+		'bio_breaks'  => 'yes',
 	);
 }
 
@@ -137,12 +139,29 @@ function gw_section_profile( $user, $a ) {
 		. '<div class="gw-profile-text">'
 		. ( $p['name'] ? '<p class="gw-name">' . esc_html( $p['name'] ) . '</p>' : '' )
 		. '<p class="gw-login"><a href="' . esc_url( $p['url'] ) . '" target="_blank" rel="noopener">@' . esc_html( $p['login'] ) . '</a></p>'
-		. ( $p['bio'] ? '<p class="gw-bio">' . esc_html( $p['bio'] ) . '</p>' : '' )
+		. ( $p['bio'] ? '<p class="gw-bio">' . gw_bio_html( $p['bio'], 'no' !== $a['bio_breaks'] ) . '</p>' : '' )
 		. ( $meta ? '<p class="gw-meta">' . implode( ' · ', $meta ) . '</p>' : '' )
 		. '<p class="gw-counts"><span><strong>' . esc_html( gw_num( $p['followers'] ) ) . '</strong> ' . esc_html__( 'followers', 'git-widget' ) . '</span>'
 		. '<span><strong>' . esc_html( gw_num( $p['following'] ) ) . '</strong> ' . esc_html__( 'following', 'git-widget' ) . '</span>'
 		. '<span><strong>' . esc_html( gw_num( $p['repos'] ) ) . '</strong> ' . esc_html__( 'public repositories', 'git-widget' ) . '</span></p>'
 		. '</div></div>';
+}
+
+/**
+ * Bio text as HTML. GitHub bios are a single line, so people pad them with runs of underscores to push
+ * text onto the next line. When $breaks is on, any run of two or more underscores (__ or __________) becomes
+ * one line break.
+ *
+ * @param string $bio    Raw bio.
+ * @param bool   $breaks Turn underscore runs into line breaks.
+ * @return string Escaped HTML.
+ */
+function gw_bio_html( $bio, $breaks = true ) {
+	if ( ! $breaks ) {
+		return esc_html( $bio );
+	}
+	$lines = preg_split( '/\s*_{2,}\s*|\r?\n/', trim( $bio ) );
+	return implode( '<br>', array_map( 'esc_html', array_filter( array_map( 'trim', $lines ), 'strlen' ) ) );
 }
 
 /**
@@ -303,39 +322,91 @@ function gw_section_overview( $user, $a ) {
 
 /**
  * Contribution types: share of commits, pull requests, issues and code reviews.
+ * With a token: exact counts from GraphQL. Without one (or if that fails): the percentages GitHub shows in
+ * the profile's activity overview. Drawn as GitHub's cross-shaped chart ("axes") or as a bar.
  *
  * @param string $user GitHub username.
- * @param array  $a    Widget options (year).
+ * @param array  $a    Widget options (year, types_style).
  * @return string HTML.
  */
 function gw_section_types( $user, $a ) {
-	$year = (int) $a['year'] ? (int) $a['year'] : null;
-	$t    = gw_contribution_types( $user, $year );
-	if ( is_wp_error( $t ) ) {
-		return gw_error( $t );
-	}
-	$kinds = array(
+	$year   = (int) $a['year'] ? (int) $a['year'] : null;
+	$kinds  = array(
 		'commits'       => __( 'Commits', 'git-widget' ),
 		'pull_requests' => __( 'Pull requests', 'git-widget' ),
 		'issues'        => __( 'Issues', 'git-widget' ),
-		'reviews'       => __( 'Code reviews', 'git-widget' ),
+		'reviews'       => __( 'Code review', 'git-widget' ),
 	);
-	$total = max( 1, array_sum( array_intersect_key( $t, $kinds ) ) );
-	$bar   = '';
-	$rows  = '';
-	$i     = 0;
-	foreach ( $kinds as $k => $label ) {
-		$pct   = round( 100 * $t[ $k ] / $total, 1 );
-		$bar  .= '<span class="gw-k' . $i . '" style="width:' . esc_attr( $pct ) . '%" title="' . esc_attr( $label . ': ' . $pct . '%' ) . '"></span>';
-		$rows .= '<li><span class="gw-dot gw-k' . $i . '"></span><span class="gw-kind">' . esc_html( $label ) . '</span><strong>' . esc_html( number_format_i18n( $t[ $k ] ) ) . '</strong><span class="gw-pct">' . esc_html( round( $pct ) . '%' ) . '</span></li>';
-		$i++;
+	$counts = gw_settings()['token'] ? gw_contribution_types( $user, $year ) : new WP_Error( 'gw_no_token', '' );
+	if ( is_wp_error( $counts ) ) {
+		$pct = gw_activity_percentages( $user, $year );
+		if ( is_wp_error( $pct ) ) {
+			return gw_error( $pct );
+		}
+		$counts = null;
+	} else {
+		$total = max( 1, array_sum( array_intersect_key( $counts, $kinds ) ) );
+		$pct   = array();
+		foreach ( $kinds as $k => $l ) {
+			$pct[ $k ] = 100 * $counts[ $k ] / $total;
+		}
 	}
-	$out = '<p class="gw-label">' . esc_html( $year ? sprintf( __( 'Contribution types in %d', 'git-widget' ), $year ) : __( 'Contribution types, last 12 months', 'git-widget' ) ) . '</p>'
-		. '<div class="gw-bar" role="img" aria-label="' . esc_attr__( 'Share of contribution types', 'git-widget' ) . '">' . $bar . '</div><ul class="gw-types">' . $rows . '</ul>';
-	if ( $t['private'] ) {
-		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Plus %s contributions to private repositories.', 'git-widget' ), number_format_i18n( $t['private'] ) ) ) . '</p>';
+	$title = $year ? sprintf( __( 'Contribution types in %d', 'git-widget' ), $year ) : __( 'Contribution types, last 12 months', 'git-widget' );
+	$out   = '<p class="gw-label">' . esc_html( $title ) . '</p>';
+	if ( 'bar' === $a['types_style'] ) {
+		$bar  = '';
+		$rows = '';
+		$i    = 0;
+		foreach ( $kinds as $k => $label ) {
+			$p     = round( $pct[ $k ], 1 );
+			$bar  .= '<span class="gw-k' . $i . '" style="width:' . esc_attr( $p ) . '%" title="' . esc_attr( $label . ': ' . round( $p ) . '%' ) . '"></span>';
+			$rows .= '<li><span class="gw-dot gw-k' . $i . '"></span><span class="gw-kind">' . esc_html( $label ) . '</span><strong>' . ( $counts ? esc_html( number_format_i18n( $counts[ $k ] ) ) : '' ) . '</strong><span class="gw-pct">' . esc_html( round( $p ) . '%' ) . '</span></li>';
+			$i++;
+		}
+		$out .= '<div class="gw-bar" role="img" aria-label="' . esc_attr( $title ) . '">' . $bar . '</div><ul class="gw-types">' . $rows . '</ul>';
+	} else {
+		$out .= gw_axes_chart( $pct, $kinds, $title );
+	}
+	if ( $counts && $counts['private'] ) {
+		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Plus %s contributions to private repositories.', 'git-widget' ), number_format_i18n( $counts['private'] ) ) ) . '</p>';
 	}
 	return $out;
+}
+
+/**
+ * GitHub's activity overview chart: four axes (code review up, issues right, pull requests down,
+ * commits left), a point on each at its percentage, and the shape between them filled.
+ *
+ * @param array  $pct   Kind => percent.
+ * @param array  $kinds Kind => label.
+ * @param string $title Accessible name.
+ * @return string SVG.
+ */
+function gw_axes_chart( $pct, $kinds, $title ) {
+	$cx  = 170;
+	$cy  = 120;
+	$len = 90;
+	$dir = array( 'reviews' => array( 0, -1 ), 'issues' => array( 1, 0 ), 'pull_requests' => array( 0, 1 ), 'commits' => array( -1, 0 ) );
+	$pts = array();
+	$svg = '';
+	foreach ( $dir as $k => $d ) {
+		$svg  .= '<line class="gw-axis-line" x1="' . $cx . '" y1="' . $cy . '" x2="' . ( $cx + $d[0] * $len ) . '" y2="' . ( $cy + $d[1] * $len ) . '"/>';
+		$r     = max( 2, $len * $pct[ $k ] / 100 );
+		$pts[] = ( $cx + $d[0] * $r ) . ',' . ( $cy + $d[1] * $r );
+	}
+	$svg .= '<polygon class="gw-axis-shape" points="' . implode( ' ', $pts ) . '"/>';
+	foreach ( $pts as $p ) {
+		list( $x, $y ) = explode( ',', $p );
+		$svg          .= '<circle class="gw-axis-dot" cx="' . $x . '" cy="' . $y . '" r="4"/>';
+	}
+	$place = array( 'reviews' => array( $cx, $cy - $len - 12, 'middle' ), 'issues' => array( $cx + $len + 16, $cy - 2, 'start' ), 'pull_requests' => array( $cx, $cy + $len + 18, 'middle' ), 'commits' => array( $cx - $len - 16, $cy - 2, 'end' ) );
+	foreach ( $place as $k => $p ) {
+		$share = round( $pct[ $k ] );
+		$svg  .= '<text class="gw-axis-label" x="' . $p[0] . '" y="' . $p[1] . '" text-anchor="' . $p[2] . '">'
+			. ( $share ? '<tspan x="' . $p[0] . '" dy="0">' . esc_html( $share . '%' ) . '</tspan><tspan x="' . $p[0] . '" dy="1.2em">' : '<tspan x="' . $p[0] . '" dy="0.6em">' )
+			. esc_html( $kinds[ $k ] ) . '</tspan></text>';
+	}
+	return '<svg class="gw-axes" viewBox="0 0 340 250" role="img" aria-label="' . esc_attr( $title ) . '">' . $svg . '</svg>';
 }
 
 /**

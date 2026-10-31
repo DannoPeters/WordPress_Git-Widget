@@ -352,3 +352,48 @@ function gw_year_total( $user, $year ) {
 		}
 	);
 }
+
+/**
+ * Activity overview percentages from the public profile page (no token needed): the share of commits,
+ * issues, pull requests and code reviews GitHub shows in its cross-shaped chart. Only present when the
+ * user has "Activity overview" switched on in their GitHub profile settings.
+ *
+ * @param string   $user GitHub username.
+ * @param int|null $year Year, or null for the last 12 months.
+ * @return array|WP_Error commits, issues, pull_requests, reviews (percent, 0-100).
+ */
+function gw_activity_percentages( $user, $year = null ) {
+	return gw_cached(
+		"activity:$user:" . ( $year ? $year : 'last' ),
+		function () use ( $user, $year ) {
+			$url  = 'https://github.com/' . rawurlencode( $user ) . '?tab=overview' . ( $year ? "&from=$year-01-01&to=$year-12-31" : '' );
+			$html = gw_get( $url, false, false );
+			if ( is_wp_error( $html ) ) {
+				return $html;
+			}
+			return gw_parse_activity_percentages( $html );
+		}
+	);
+}
+
+/**
+ * Read the activity overview percentages from profile HTML.
+ *
+ * @param string $html Page HTML.
+ * @return array|WP_Error
+ */
+function gw_parse_activity_percentages( $html ) {
+	if ( ! preg_match( '/data-percentages="([^"]+)"/', $html, $m ) ) {
+		return new WP_Error( 'gw_no_overview', 'GitHub is not showing an activity overview for this user. Turn on "Activity overview" in GitHub profile settings, or add a token.' );
+	}
+	$p = json_decode( html_entity_decode( $m[1], ENT_QUOTES ), true );
+	if ( ! is_array( $p ) ) {
+		return new WP_Error( 'gw_no_overview', 'Could not read the activity overview.' );
+	}
+	return array(
+		'commits'       => (float) ( $p['Commits'] ?? 0 ),
+		'issues'        => (float) ( $p['Issues'] ?? 0 ),
+		'pull_requests' => (float) ( $p['Pull requests'] ?? 0 ),
+		'reviews'       => (float) ( $p['Code review'] ?? 0 ),
+	);
+}
