@@ -433,3 +433,56 @@ function gw_repos( $user ) {
 		}
 	);
 }
+
+/**
+ * Count matching items with GitHub search (works without a token; GitHub allows about 10 searches a minute
+ * without one, so results are cached).
+ *
+ * @param string $user  GitHub username.
+ * @param string $kind  commits, pull_requests, merged_prs, issues_opened or reviews.
+ * @param string $range "" for all time, or "YYYY-MM-DD..YYYY-MM-DD".
+ * @return int|WP_Error
+ */
+function gw_search_count( $user, $kind, $range = '' ) {
+	return gw_cached(
+		"search:$user:$kind:$range",
+		function () use ( $user, $kind, $range ) {
+			$q = array(
+				'commits'       => array( 'commits', "author:$user" . ( $range ? " author-date:$range" : '' ) ),
+				'pull_requests' => array( 'issues', "author:$user type:pr" . ( $range ? " created:$range" : '' ) ),
+				'merged_prs'    => array( 'issues', "author:$user type:pr is:merged" . ( $range ? " merged:$range" : '' ) ),
+				'issues_opened' => array( 'issues', "author:$user type:issue" . ( $range ? " created:$range" : '' ) ),
+				'reviews'       => array( 'issues', "reviewed-by:$user type:pr -author:$user" . ( $range ? " created:$range" : '' ) ),
+			);
+			if ( ! isset( $q[ $kind ] ) ) {
+				return new WP_Error( 'gw_kind', 'Unknown search.' );
+			}
+			$r = gw_get( 'https://api.github.com/search/' . $q[ $kind ][0] . '?per_page=1&q=' . rawurlencode( $q[ $kind ][1] ) );
+			return is_wp_error( $r ) ? $r : (int) ( $r['total_count'] ?? 0 );
+		}
+	);
+}
+
+/**
+ * Every contribution day since the user's first contribution year, oldest first (for all-time figures).
+ *
+ * @param string $user GitHub username.
+ * @return array|WP_Error days[] (date => count), total.
+ */
+function gw_calendar_all( $user ) {
+	$days = array();
+	foreach ( array_reverse( gw_contribution_years( $user ) ) as $y ) {
+		$cal = gw_calendar( $user, (int) $y );
+		if ( is_wp_error( $cal ) ) {
+			return $cal;
+		}
+		$days += $cal['days'];
+	}
+	ksort( $days );
+	// Drop future days of the current year.
+	$today = gmdate( 'Y-m-d' );
+	$days  = array_filter( $days, function ( $d ) use ( $today ) {
+		return $d <= $today;
+	}, ARRAY_FILTER_USE_KEY );
+	return array( 'days' => $days, 'total' => array_sum( $days ) );
+}
