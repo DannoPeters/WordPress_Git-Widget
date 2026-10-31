@@ -126,5 +126,14 @@
  "Overview on mobile: 2 per row, small, short names": {
   "sections": "overview",
   "period": "all"
+ },
+ "Overview extras: trend lines, change, auto highlight, links": {
+  "sections": "overview",
+  "period": "last",
+  "tile_spark": "yes",
+  "tile_change": "yes",
+  "tile_highlight": "auto",
+  "tile_links": "yes",
+  "metrics": "contributions,active_days,longest_streak,commits,stars,followers"
  }
 }

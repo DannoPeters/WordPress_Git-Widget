@@ -42,6 +42,8 @@ function plugin_dir_path( $f ) { return dirname( $f ) . '/'; }
 function plugin_dir_url( $f ) { return ''; }
 function date_i18n( $f, $t ) { return gmdate( $f, $t ); }
 function wp_date( $f, $t ) { return gmdate( $f, $t ); }
+function wp_remote_get() { return new WP_Error( 'offline', 'The preview has no network.' ); }
+function wp_remote_post() { return new WP_Error( 'offline', 'The preview has no network.' ); }
 
 require dirname( __DIR__ ) . '/git-widget.php';
 

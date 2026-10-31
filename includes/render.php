@@ -70,6 +70,10 @@ function gw_defaults() {
 		'tiles_text_d'    => 'full',
 		'tiles_text_t'    => 'full',
 		'tiles_text_m'    => 'short',
+		'tile_spark'      => 'no',
+		'tile_change'     => 'no',
+		'tile_highlight'  => 'off',
+		'tile_links'      => 'no',
 		'all_layout'      => 'joined',
 		'calendar_chart'  => 'off',
 		'chart_style'     => 'line',
@@ -877,9 +881,6 @@ function gw_awesome_benchmarks() {
  * @return array Metric => [value, sub-line], in catalogue order.
  */
 function gw_awesome_metrics( $user, $period, &$ctx, $how = 6 ) {
-	$bench  = gw_awesome_benchmarks();
-	$scale  = 'all' === $period['kind'] ? 5 : 1;
-	$timed  = array( 'contributions', 'active_days', 'commits', 'pull_requests', 'merged_prs', 'issues_opened', 'reviews' );
 	$values = array();
 	$scores = array();
 	foreach ( array_keys( gw_overview_metrics() ) as $m ) {
@@ -888,7 +889,7 @@ function gw_awesome_metrics( $user, $period, &$ctx, $how = 6 ) {
 			continue;
 		}
 		$values[ $m ] = $v;
-		$scores[ $m ] = $v[0] / ( $bench[ $m ] * ( in_array( $m, $timed, true ) ? $scale : 1 ) );
+		$scores[ $m ] = gw_tile_score( $m, $v[0], $period );
 	}
 	arsort( $scores );
 	$pick = array_slice( array_keys( $scores ), 0, $how );
@@ -898,6 +899,177 @@ function gw_awesome_metrics( $user, $period, &$ctx, $how = 6 ) {
 	}
 	// Show them in the usual order rather than by score, so related tiles sit together.
 	return array_intersect_key( $values, array_flip( $pick ) );
+}
+
+/**
+ * How impressive a figure is next to its Awesome Mode benchmark (1 = right on it).
+ *
+ * @param string $m      Metric key.
+ * @param float  $value  The figure.
+ * @param array  $period From gw_period().
+ * @return float
+ */
+function gw_tile_score( $m, $value, $period ) {
+	$bench = gw_awesome_benchmarks();
+	$timed = array( 'contributions', 'active_days', 'commits', 'pull_requests', 'merged_prs', 'issues_opened', 'reviews' );
+	$scale = 'all' === $period['kind'] && in_array( $m, $timed, true ) ? 5 : 1;
+	return empty( $bench[ $m ] ) ? 0 : $value / ( $bench[ $m ] * $scale );
+}
+
+/**
+ * Daily counts between two dates, stitched together from the yearly calendars.
+ *
+ * @param string $user GitHub username.
+ * @param int    $from Start timestamp.
+ * @param int    $to   End timestamp.
+ * @return array Date => count.
+ */
+function gw_days_between( $user, $from, $to ) {
+	$days = array();
+	for ( $y = (int) gmdate( 'Y', $from ); $y <= (int) gmdate( 'Y', $to ); $y++ ) {
+		$cal = gw_calendar( $user, $y );
+		if ( is_wp_error( $cal ) ) {
+			continue;
+		}
+		foreach ( $cal['days'] as $d => $n ) {
+			$t = strtotime( $d );
+			if ( $t >= $from && $t <= $to ) {
+				$days[ $d ] = $n;
+			}
+		}
+	}
+	ksort( $days );
+	return $days;
+}
+
+/**
+ * The time frame just before this one: the previous year, or the 12 months before the last 12. None for all time.
+ *
+ * @param array $period From gw_period().
+ * @return array|null from, to (timestamps), range (search syntax), label.
+ */
+function gw_previous_period( $period ) {
+	if ( 'year' === $period['kind'] ) {
+		$y = $period['year'] - 1;
+		return array( 'from' => strtotime( "$y-01-01" ), 'to' => strtotime( "$y-12-31" ), 'range' => "$y-01-01..$y-12-31", 'label' => sprintf( __( 'vs %d', 'git-widget' ), $y ) );
+	}
+	if ( 'last' === $period['kind'] ) {
+		$to   = strtotime( gmdate( 'Y-m-d', strtotime( '-1 year' ) ) );
+		$from = strtotime( '-1 year +1 day', $to );
+		return array( 'from' => $from, 'to' => $to, 'range' => gmdate( 'Y-m-d', $from ) . '..' . gmdate( 'Y-m-d', $to ), 'label' => __( 'vs the year before', 'git-widget' ) );
+	}
+	return null;
+}
+
+/**
+ * A figure for the previous period, for the change badge. Only metrics that cover a time frame have one.
+ *
+ * @param string $m    Metric key.
+ * @param string $user GitHub username.
+ * @param array  $prev From gw_previous_period().
+ * @param array  $ctx  Shared cache (by reference).
+ * @return float|null
+ */
+function gw_previous_value( $m, $user, $prev, &$ctx ) {
+	if ( in_array( $m, array( 'commits', 'pull_requests', 'merged_prs', 'issues_opened', 'reviews' ), true ) ) {
+		$n = gw_search_count( $user, $m, $prev['range'] );
+		return is_wp_error( $n ) ? null : (float) $n;
+	}
+	if ( ! in_array( $m, array( 'contributions', 'active_days', 'longest_streak', 'daily_average' ), true ) ) {
+		return null;
+	}
+	if ( ! array_key_exists( 'prev_st', $ctx ) ) {
+		$days           = gw_days_between( $user, $prev['from'], $prev['to'] );
+		$ctx['prev_st'] = $days ? gw_calendar_stats( $days ) : null;
+	}
+	$st = $ctx['prev_st'];
+	if ( ! $st ) {
+		return null;
+	}
+	$map = array(
+		'contributions'  => $st['total'],
+		'active_days'    => $st['active'],
+		'longest_streak' => $st['longest'],
+		'daily_average'  => $st['active'] ? $st['total'] / $st['active'] : 0,
+	);
+	return (float) $map[ $m ];
+}
+
+/**
+ * The days a period covers, for sparklines.
+ *
+ * @param string $user   GitHub username.
+ * @param array  $period From gw_period().
+ * @param array  $ctx    Shared cache (by reference).
+ * @return array Date => count.
+ */
+function gw_period_days( $user, $period, &$ctx ) {
+	if ( ! array_key_exists( 'spark_days', $ctx ) ) {
+		$c                 = 'all' === $period['kind'] ? gw_calendar_all( $user ) : gw_calendar( $user, $period['year'] );
+		$ctx['spark_days'] = is_wp_error( $c ) ? array() : gw_past_days( $c['days'] );
+	}
+	return $ctx['spark_days'];
+}
+
+/**
+ * A tiny trend line for a tile: contributions (or active days) per month, or per year for all time.
+ *
+ * @param string $m    Metric key.
+ * @param array  $days Date => count.
+ * @param bool   $all  Group by year instead of month.
+ * @return string SVG, or "" for metrics without a trend.
+ */
+function gw_tile_spark( $m, $days, $all ) {
+	if ( ! $days || ! in_array( $m, array( 'contributions', 'active_days', 'current_streak', 'longest_streak', 'daily_average', 'busiest_day' ), true ) ) {
+		return '';
+	}
+	$buckets = array();
+	foreach ( $days as $d => $n ) {
+		$k = $all ? substr( $d, 0, 4 ) : substr( $d, 0, 7 );
+		$buckets[ $k ] = ( $buckets[ $k ] ?? 0 ) + ( 'active_days' === $m ? ( $n > 0 ? 1 : 0 ) : $n );
+	}
+	$vals = array_values( $buckets );
+	if ( count( $vals ) < 2 ) {
+		return '';
+	}
+	$max = max( 1, max( $vals ) );
+	$w   = 100;
+	$h   = 24;
+	$pts = array();
+	foreach ( $vals as $i => $v ) {
+		$pts[] = round( $i * $w / ( count( $vals ) - 1 ), 1 ) . ',' . round( $h - 2 - ( $h - 4 ) * $v / $max, 1 );
+	}
+	$line = implode( ' ', $pts );
+	return '<svg class="gw-spark" viewBox="0 0 ' . $w . ' ' . $h . '" preserveAspectRatio="none" aria-hidden="true">'
+		. '<polygon class="gw-spark-fill" points="0,' . $h . ' ' . $line . ' ' . $w . ',' . $h . '"/>'
+		. '<polyline class="gw-spark-line" points="' . $line . '" vector-effect="non-scaling-stroke"/></svg>';
+}
+
+/**
+ * Where a tile links on GitHub.
+ *
+ * @param string $m    Metric key.
+ * @param string $user GitHub username.
+ * @return string URL.
+ */
+function gw_tile_link( $m, $user ) {
+	$u     = rawurlencode( $user );
+	$q     = rawurlencode( $user );
+	$links = array(
+		'commits'       => "https://github.com/search?q=author%3A$q&type=commits",
+		'pull_requests' => "https://github.com/pulls?q=is%3Apr+author%3A$q",
+		'merged_prs'    => "https://github.com/pulls?q=is%3Apr+is%3Amerged+author%3A$q",
+		'issues_opened' => "https://github.com/issues?q=is%3Aissue+author%3A$q",
+		'reviews'       => "https://github.com/pulls?q=is%3Apr+reviewed-by%3A$q",
+		'stars'         => "https://github.com/$u?tab=repositories&sort=stargazers",
+		'forks'         => "https://github.com/$u?tab=repositories&sort=stargazers",
+		'repositories'  => "https://github.com/$u?tab=repositories",
+		'languages'     => "https://github.com/$u?tab=repositories",
+		'followers'     => "https://github.com/$u?tab=followers",
+		'following'     => "https://github.com/$u?tab=following",
+		'organisations' => "https://github.com/$u",
+	);
+	return $links[ $m ] ?? "https://github.com/$u";
 }
 
 /**
@@ -930,12 +1102,41 @@ function gw_section_overview( $user, $a ) {
 	}
 	$out = '<p class="gw-label">' . esc_html( sprintf( __( 'Activity overview, %s', 'git-widget' ), $period['label'] ) ) . '</p><div class="gw-tiles ' . esc_attr( gw_tile_classes( $a ) ) . '">';
 	$short = gw_overview_short_labels();
+	// The highlighted tile: the strongest against its benchmark, or the one chosen.
+	$star = '';
+	if ( 'auto' === $a['tile_highlight'] ) {
+		$best = 0;
+		foreach ( $tiles as $m => $t ) {
+			$score = gw_tile_score( $m, (float) $t[0], $period );
+			if ( $score > $best ) {
+				$best = $score;
+				$star = $m;
+			}
+		}
+	} elseif ( isset( $tiles[ $a['tile_highlight'] ] ) ) {
+		$star = $a['tile_highlight'];
+	}
+	$prev = 'yes' === $a['tile_change'] ? gw_previous_period( $period ) : null;
 	foreach ( $tiles as $m => $t ) {
 		$shown = is_float( $t[0] ) ? number_format_i18n( $t[0], 1 ) : gw_num( (int) $t[0] );
+		$extra = '';
+		if ( $prev ) {
+			$before = gw_previous_value( $m, $user, $prev, $ctx );
+			if ( $before ) {
+				$pct    = (int) round( 100 * ( (float) $t[0] - $before ) / $before );
+				$dir    = $pct > 0 ? 'up' : ( $pct < 0 ? 'down' : 'flat' );
+				$extra .= '<small class="gw-change gw-change-' . $dir . '" title="' . esc_attr( $prev['label'] ) . '">' . esc_html( ( $pct > 0 ? '+' : '' ) . $pct . '%' ) . '</small>';
+			}
+		}
+		if ( 'yes' === $a['tile_spark'] ) {
+			$extra .= gw_tile_spark( $m, gw_period_days( $user, $period, $ctx ), 'all' === $period['kind'] );
+		}
+		$tag   = 'yes' === $a['tile_links'] ? 'a' : 'div';
+		$href  = 'a' === $tag ? ' href="' . esc_url( gw_tile_link( $m, $user ) ) . '" target="_blank" rel="noopener"' : '';
 		// Both names go in the page; CSS picks one per screen size. The full name stays as a tooltip.
-		$out  .= '<div class="gw-tile" title="' . esc_attr( $all[ $m ] ) . '"><strong>' . esc_html( $shown ) . '</strong>'
+		$out  .= '<' . $tag . $href . ' class="gw-tile' . ( $m === $star ? ' gw-tile-star' : '' ) . '" title="' . esc_attr( $all[ $m ] ) . '"><strong>' . esc_html( $shown ) . '</strong>'
 			. '<span class="gw-full">' . esc_html( $all[ $m ] ) . '</span><span class="gw-short">' . esc_html( $short[ $m ] ?? $all[ $m ] ) . '</span>'
-			. ( '' !== $t[1] ? '<em>' . esc_html( $t[1] ) . '</em>' : '' ) . '</div>';
+			. ( '' !== $t[1] ? '<em>' . esc_html( $t[1] ) . '</em>' : '' ) . $extra . '</' . $tag . '>';
 	}
 	return $out . '</div>';
 }
