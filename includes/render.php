@@ -150,7 +150,10 @@ function gw_render( $atts ) {
 	$style   = apply_filters( 'gw_widget_style', $style, $a );
 	$classes = apply_filters( 'gw_widget_classes', $classes, $a );
 
-	$out = '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( implode( ' ', $classes ) ) . '" style="' . esc_attr( $style ) . '">';
+	// Edition and version markers: they let anyone check (with tools/check-attribution.js) that a free widget still
+	// shows its credit, as the additional licence terms require.
+	$out = '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( implode( ' ', $classes ) ) . '" style="' . esc_attr( $style ) . '"'
+		. ' data-gw="' . esc_attr( GW_VERSION ) . '" data-gw-edition="' . ( gw_is_pro() ? 'pro' : 'free' ) . '">';
 	if ( '' !== $a['title'] ) {
 		$out .= '<h3 class="gw-title">' . esc_html( $a['title'] ) . '</h3>';
 	}
@@ -166,6 +169,9 @@ function gw_render( $atts ) {
 	if ( 'yes' === $a['show_link'] ) {
 		$out .= '<p class="gw-footer"><a href="' . esc_url( 'https://github.com/' . $user ) . '" target="_blank" rel="noopener">' . esc_html( sprintf( __( 'View %s on GitHub', 'git-widget' ), '@' . $user ) ) . '</a></p>';
 	}
+	if ( ! gw_is_pro() ) {
+		gw_enqueue_script();
+	}
 	return $out . gw_credit() . '</div>';
 }
 
@@ -175,7 +181,7 @@ function gw_render( $atts ) {
  * @return string HTML.
  */
 function gw_credit() {
-	$html = '<p class="gw-credit">' . sprintf(
+	$html = '<p class="gw-credit" data-gw-credit>' . sprintf(
 		/* translators: %s: link to the author's site */
 		esc_html__( 'Git Widget by %s', 'git-widget' ),
 		'<a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters</a>'
@@ -185,8 +191,63 @@ function gw_credit() {
 	 *
 	 * @param string $html Credit HTML.
 	 */
-	return (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
+	$out = (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
+	// The free edition always keeps the credit and its link; a filter may restyle it but not drop it.
+	if ( gw_is_pro() || false !== strpos( $out, 'dannopeters.ca' ) ) {
+		return $out;
+	}
+	// A filter tried to drop the credit on a free site: restore it, and let the admin know it's required.
+	if ( ! get_option( 'gw_credit_notice' ) ) {
+		update_option( 'gw_credit_notice', time(), false );
+	}
+	return $html;
 }
+
+/**
+ * Tell the site's administrators, in their own dashboard, that the credit line is required on the free edition.
+ * Shows only after something tried to remove it, and can be dismissed.
+ *
+ * @return void
+ */
+function gw_admin_notice() {
+	if ( gw_is_pro() || ! current_user_can( 'manage_options' ) || ! get_option( 'gw_credit_notice' ) || get_user_meta( get_current_user_id(), 'gw_credit_dismissed', true ) ) {
+		return;
+	}
+	$url = wp_nonce_url( add_query_arg( 'gw_dismiss', '1' ), 'gw_dismiss' );
+	echo '<div class="notice notice-warning"><p>'
+		. wp_kses_post(
+			sprintf(
+				/* translators: 1: plugin name, 2: link to the author's site */
+				__( '<strong>%1$s</strong> is free to use, and its licence asks that the small "Git Widget by DannoPeters" credit stays visible under each widget. It looks like something on this site hides it, so the plugin is showing it anyway. To use the widgets without the credit, see %2$s.', 'git-widget' ),
+				'Git Widget',
+				'<a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters.ca</a>'
+			)
+		)
+		. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Dismiss', 'git-widget' ) . '</a></p></div>';
+}
+add_action( 'admin_notices', 'gw_admin_notice' );
+
+/**
+ * Remember that an administrator dismissed the credit notice.
+ *
+ * @return void
+ */
+function gw_admin_notice_dismiss() {
+	if ( isset( $_GET['gw_dismiss'] ) && check_admin_referer( 'gw_dismiss' ) ) {
+		update_user_meta( get_current_user_id(), 'gw_credit_dismissed', 1 );
+	}
+}
+add_action( 'admin_init', 'gw_admin_notice_dismiss' );
+
+/**
+ * Generator tag in the page head, the way WordPress and most plugins announce themselves.
+ *
+ * @return void
+ */
+function gw_generator() {
+	echo '<meta name="generator" content="' . esc_attr( ( gw_is_pro() ? 'Git Widget Pro ' : 'Git Widget ' ) . GW_VERSION ) . '">' . "\n";
+}
+add_action( 'wp_head', 'gw_generator' );
 
 /**
  * A small notice shown in place of a section that can't load.

@@ -129,3 +129,9 @@ If Pro is ever removed, widgets don't break. The Pro settings just fall back to 
 ### For add-on builders
 
 The core exposes filters so add-ons can plug in: `gw_is_pro`, `gw_defaults`, `gw_atts`, `gw_widget_style`, `gw_widget_classes`, `gw_credit`, `gw_bb_form` and `gw_bb_atts`. Every colour is a CSS variable (`--gw-c-text`, `--gw-c-cal1`, `--gw-c-chart` and friends) that falls back to the GitHub colour.
+
+## Licence
+
+Git Widget is free software under the [GNU GPL, version 3 or later](LICENSE), with one additional term allowed by section 7(b): the "Git Widget by DannoPeters" credit under each widget has to stay visible, with its link. Restyle it however you like, just don't remove or hide it. The full wording is in [ADDITIONAL-TERMS.md](ADDITIONAL-TERMS.md). Sites with a Git Widget Pro licence don't need the credit.
+
+If the credit is removed, the plugin restores it and, in the WordPress dashboard, lets the site's administrator know it's required.
