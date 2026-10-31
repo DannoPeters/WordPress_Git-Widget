@@ -58,6 +58,10 @@ function gw_defaults() {
 		'calendar_period' => '',
 		'calendar_picker' => 'off',
 		'picker_position' => 'right',
+		'all_layout'      => 'joined',
+		'calendar_chart'  => 'off',
+		'chart_style'     => 'line',
+		'chart_fill'      => 'yes',
 		'period'      => '',
 	);
 }
@@ -210,22 +214,24 @@ function gw_section_calendar( $user, $a ) {
 	$period = gw_period( array( 'period' => $a['calendar_period'], 'year' => $a['year'] ) );
 	$start  = 'all' === $period['kind'] ? 'all' : ( 'year' === $period['kind'] ? 'y' . $period['year'] : 'last' );
 	if ( ! in_array( $a['calendar_picker'], array( 'dropdown', 'list' ), true ) ) {
-		$html = gw_calendar_panel( $user, $start );
+		$html = gw_calendar_panel( $user, $start, $a );
 		return '' === $html ? gw_error( __( 'No contribution data found.', 'git-widget' ) ) : $html . gw_calendar_legend();
 	}
-	return gw_calendar_picker( $user, $start, $a['calendar_picker'], $a['picker_position'] );
+	return gw_calendar_picker( $user, $start, $a );
 }
 
 /**
- * One calendar view: "last" (12 months), "yYYYY" (a year) or "all" (every year stacked).
+ * One calendar view: "last" (12 months), "yYYYY" (a year) or "all" (every year), with the optional trend chart
+ * above it.
  *
  * @param string $user GitHub username.
  * @param string $view View key.
+ * @param array  $a    Widget options (all_layout, calendar_chart, chart_style, chart_fill).
  * @return string HTML without the legend, or "" when there is no data.
  */
-function gw_calendar_panel( $user, $view ) {
+function gw_calendar_panel( $user, $view, $a ) {
 	if ( 'all' === $view ) {
-		return gw_calendar_all_years( $user );
+		return gw_calendar_all_years( $user, $a );
 	}
 	$year = 'last' === $view ? null : (int) substr( $view, 1 );
 	$cal  = gw_calendar( $user, $year );
@@ -236,20 +242,115 @@ function gw_calendar_panel( $user, $view ) {
 		? sprintf( _n( '%1$s contribution in %2$d', '%1$s contributions in %2$d', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ), $year )
 		: sprintf( _n( '%s contribution in the last year', '%s contributions in the last year', $cal['total'], 'git-widget' ), number_format_i18n( $cal['total'] ) );
 	return '<p class="gw-label">' . esc_html( $title ) . '</p>'
+		. gw_trend_chart( gw_past_days( $cal['days'] ), $a )
 		. '<div class="gw-cal-scroll">' . gw_calendar_svg( $cal['days'], $title, max( 1, max( $cal['days'] ) ), $year ) . '</div>';
+}
+
+/**
+ * Drop days after today (GitHub returns the whole current year).
+ *
+ * @param array $days Date => count.
+ * @return array
+ */
+function gw_past_days( $days ) {
+	$today = gmdate( 'Y-m-d' );
+	return array_filter(
+		$days,
+		function ( $d ) use ( $today ) {
+			return $d <= $today;
+		},
+		ARRAY_FILTER_USE_KEY
+	);
+}
+
+/**
+ * Optional chart above the calendar: contributions per year, month or day, as a line (optionally filled
+ * underneath) or as bars.
+ *
+ * @param array $days Date => count, in date order.
+ * @param array $a    Widget options (calendar_chart: off|year|month|day, chart_style: line|bar, chart_fill: yes|no).
+ * @return string SVG, or "" when switched off.
+ */
+function gw_trend_chart( $days, $a ) {
+	$unit = $a['calendar_chart'];
+	if ( ! in_array( $unit, array( 'year', 'month', 'day' ), true ) || ! $days ) {
+		return '';
+	}
+	$len = array( 'year' => 4, 'month' => 7, 'day' => 10 )[ $unit ];
+	$sum = array();
+	foreach ( $days as $date => $n ) {
+		$k         = substr( $date, 0, $len );
+		$sum[ $k ] = ( $sum[ $k ] ?? 0 ) + $n;
+	}
+	if ( 'year' === $unit && count( $sum ) < 2 ) {
+		// One year on its own says little; show its months instead.
+		return gw_trend_chart( $days, array( 'calendar_chart' => 'month' ) + $a );
+	}
+	$keys   = array_keys( $sum );
+	$vals   = array_values( $sum );
+	$n      = count( $vals );
+	$max    = max( 1, max( $vals ) );
+	// A wide canvas keeps the text small when the chart is stretched across a full-width page.
+	$w      = 1000;
+	$h      = 170;
+	$bottom = 20;
+	$top    = 16;
+	$plot   = $h - $bottom - $top;
+	$fmt    = function ( $k ) use ( $unit ) {
+		return 'year' === $unit ? $k : date_i18n( 'month' === $unit ? 'M Y' : 'M j, Y', strtotime( 'month' === $unit ? $k . '-01' : $k ) );
+	};
+	$names  = array( 'year' => __( 'Contributions per year', 'git-widget' ), 'month' => __( 'Contributions per month', 'git-widget' ), 'day' => __( 'Contributions per day', 'git-widget' ) );
+	$svg    = '<line class="gw-baseline" x1="0" x2="' . $w . '" y1="' . ( $h - $bottom ) . '" y2="' . ( $h - $bottom ) . '"/>';
+	$step   = $w / max( 1, 'bar' === $a['chart_style'] ? $n : $n - 1 );
+	if ( 'bar' === $a['chart_style'] ) {
+		$bw = max( 1, $step * ( $n > 60 ? 0.8 : 0.62 ) );
+		foreach ( $vals as $i => $v ) {
+			$bh   = $plot * $v / $max;
+			$svg .= '<rect class="gw-trend-bar" x="' . round( $i * $step + ( $step - $bw ) / 2, 2 ) . '" y="' . round( $h - $bottom - $bh, 2 ) . '" width="' . round( $bw, 2 ) . '" height="' . round( $bh, 2 ) . '"><title>' . esc_html( $fmt( $keys[ $i ] ) . ': ' . number_format_i18n( $v ) ) . '</title></rect>';
+		}
+	} else {
+		$pts = array();
+		foreach ( $vals as $i => $v ) {
+			$pts[] = round( $n > 1 ? $i * $step : $w / 2, 2 ) . ',' . round( $h - $bottom - $plot * $v / $max, 2 );
+		}
+		if ( 'no' !== $a['chart_fill'] ) {
+			$svg .= '<polygon class="gw-trend-fill" points="0,' . ( $h - $bottom ) . ' ' . implode( ' ', $pts ) . ' ' . $w . ',' . ( $h - $bottom ) . '"/>';
+		}
+		$svg .= '<polyline class="gw-trend-line" points="' . implode( ' ', $pts ) . '"/>';
+		if ( $n <= 60 ) {
+			foreach ( $pts as $i => $p ) {
+				list( $x, $y ) = explode( ',', $p );
+				$svg          .= '<circle class="gw-trend-dot" cx="' . $x . '" cy="' . $y . '" r="3"><title>' . esc_html( $fmt( $keys[ $i ] ) . ': ' . number_format_i18n( $vals[ $i ] ) ) . '</title></circle>';
+			}
+		}
+	}
+	// Up to about 12 labels along the bottom, wherever a new year/month starts.
+	$every = max( 1, (int) ceil( $n / 12 ) );
+	foreach ( $keys as $i => $k ) {
+		$new = 'day' === $unit ? '01' === substr( $k, 8, 2 ) && ( (int) substr( $k, 5, 2 ) - 1 ) % max( 1, (int) ceil( $n / 365 ) ) === 0 : 0 === $i % $every;
+		if ( ! $new ) {
+			continue;
+		}
+		$x     = 'bar' === $a['chart_style'] ? $i * $step + $step / 2 : ( $n > 1 ? $i * $step : $w / 2 );
+		$label = 'year' === $unit ? $k : date_i18n( ( 'month' === $unit && $n > 13 ) || ( 'day' === $unit && $n > 400 ) ? 'M y' : 'M', strtotime( 'month' === $unit ? $k . '-01' : $k ) );
+		$svg  .= '<text class="gw-lab" x="' . round( $x, 1 ) . '" y="' . ( $h - 5 ) . '">' . esc_html( $label ) . '</text>';
+	}
+	$svg .= '<text class="gw-val" x="' . ( $w - 2 ) . '" y="10" style="text-anchor:end">' . esc_html( sprintf( __( 'peak %s', 'git-widget' ), number_format_i18n( $max ) ) ) . '</text>';
+	return '<svg class="gw-chart gw-trend" viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="' . esc_attr( $names[ $unit ] ) . '">' . $svg . '</svg>';
 }
 
 /**
  * Calendar with a year picker visitors can use: every view is rendered up front and a small script shows the
  * chosen one, so switching is instant and needs no extra requests.
  *
- * @param string $user     GitHub username.
- * @param string $start    View shown first.
- * @param string $style    "dropdown" or "list".
- * @param string $position For the list: "left", "right" or "bottom".
+ * @param string $user  GitHub username.
+ * @param string $start View shown first.
+ * @param array  $a     Widget options (calendar_picker: dropdown|list, picker_position: left|right|bottom, ...).
  * @return string HTML.
  */
-function gw_calendar_picker( $user, $start, $style, $position ) {
+function gw_calendar_picker( $user, $start, $a ) {
+	$style    = $a['calendar_picker'];
+	$position = $a['picker_position'];
 	$views = array( 'last' => __( 'Last 12 months', 'git-widget' ) );
 	foreach ( gw_contribution_years( $user ) as $y ) {
 		$views[ 'y' . (int) $y ] = (string) (int) $y;
@@ -259,7 +360,7 @@ function gw_calendar_picker( $user, $start, $style, $position ) {
 	$panels = '';
 	$nav    = '';
 	foreach ( $views as $key => $label ) {
-		$html = gw_calendar_panel( $user, $key );
+		$html = gw_calendar_panel( $user, $key, $a );
 		if ( '' === $html ) {
 			unset( $views[ $key ] );
 			continue;
@@ -297,39 +398,98 @@ function gw_calendar_picker( $user, $start, $style, $position ) {
  * @param string $user GitHub username.
  * @return string HTML.
  */
-function gw_calendar_all_years( $user ) {
+function gw_calendar_all_years( $user, $a = array() ) {
+	$a     = wp_parse_args( $a, gw_defaults() );
 	$years = array();
 	foreach ( gw_contribution_years( $user ) as $y ) {
 		$cal = gw_calendar( $user, (int) $y );
 		if ( ! is_wp_error( $cal ) && $cal['days'] ) {
-			$years[ (int) $y ] = $cal;
+			$years[ (int) $y ] = gw_past_days( $cal['days'] );
 		}
 	}
 	if ( ! $years ) {
-		return gw_error( __( 'No contribution data found.', 'git-widget' ) );
+		return '';
 	}
 	krsort( $years );
-	$total = array_sum( array_column( $years, 'total' ) );
-	// One shading scale for every year: the busiest day overall (ignoring rare extreme spikes).
-	$all = array();
-	foreach ( $years as $c ) {
-		$all = array_merge( $all, array_values( array_filter( $c['days'] ) ) );
+	$every = array();
+	foreach ( $years as $days ) {
+		$every += $days;
 	}
-	sort( $all );
-	$max   = $all ? max( 1, $all[ (int) floor( 0.98 * ( count( $all ) - 1 ) ) ] ) : 1;
-	$first = min( array_keys( $years ) );
-	$title = sprintf( _n( '%1$s contribution since %2$d', '%1$s contributions since %2$d', $total, 'git-widget' ), number_format_i18n( $total ), $first );
-	$out   = '<p class="gw-label">' . esc_html( $title ) . '</p><div class="gw-cal-years">';
-	foreach ( $years as $y => $c ) {
-		$today  = gmdate( 'Y-m-d' );
-		$days   = array_filter( $c['days'], function ( $d ) use ( $today ) {
-			return $d <= $today;
-		}, ARRAY_FILTER_USE_KEY );
-		$label  = sprintf( _n( '%s contribution', '%s contributions', $c['total'], 'git-widget' ), number_format_i18n( $c['total'] ) );
-		$out   .= '<div class="gw-cal-year"><p class="gw-cal-year-head"><strong>' . (int) $y . '</strong><span>' . esc_html( $label ) . '</span></p>'
-			. '<div class="gw-cal-scroll">' . gw_calendar_svg( $days, $y . ': ' . $label, $max, (int) $y ) . '</div></div>';
+	ksort( $every );
+	$total = array_sum( $every );
+	// One shading scale for every year: the busiest days overall, ignoring rare extreme spikes.
+	$busy = array_values( array_filter( $every ) );
+	sort( $busy );
+	$max   = $busy ? max( 1, $busy[ (int) floor( 0.98 * ( count( $busy ) - 1 ) ) ] ) : 1;
+	$title = sprintf( _n( '%1$s contribution since %2$d', '%1$s contributions since %2$d', $total, 'git-widget' ), number_format_i18n( $total ), min( array_keys( $years ) ) );
+	$out   = '<p class="gw-label">' . esc_html( $title ) . '</p>' . gw_trend_chart( $every, $a );
+	if ( 'separate' === $a['all_layout'] ) {
+		$out .= '<div class="gw-cal-years">';
+		foreach ( $years as $y => $days ) {
+			$label = sprintf( _n( '%s contribution', '%s contributions', array_sum( $days ), 'git-widget' ), number_format_i18n( array_sum( $days ) ) );
+			$out  .= '<div class="gw-cal-year"><p class="gw-cal-year-head"><strong>' . (int) $y . '</strong><span>' . esc_html( $label ) . '</span></p>'
+				. '<div class="gw-cal-scroll">' . gw_calendar_svg( $days, $y . ': ' . $label, $max, (int) $y ) . '</div></div>';
+		}
+		return $out . '</div>';
 	}
-	return $out . '</div>';
+	return $out . '<div class="gw-cal-scroll">' . gw_calendar_joined_svg( $years, $max, $title ) . '</div>';
+}
+
+/**
+ * Every year joined into one block: a band of seven day-rows per year (newest on top), weekdays on the left,
+ * months once along the top and each year's label and total on the right.
+ *
+ * @param array  $years Year => (date => count), newest first.
+ * @param int    $max   Count that gets the darkest shade.
+ * @param string $title Accessible name.
+ * @return string SVG markup.
+ */
+function gw_calendar_joined_svg( $years, $max, $title ) {
+	$cell  = 11;
+	$gap   = 3;
+	$band  = 7 * ( $cell + $gap );
+	$space = 5; // A hairline between years so the bands still read as separate.
+	$left  = 28;
+	$top   = 16;
+	$right = 92;
+	$cols  = 54;
+	$svg   = '';
+	// Month labels from a reference year: columns shift by at most one between years.
+	$ref   = (int) array_key_first( $years );
+	$jan1  = strtotime( "$ref-01-01" );
+	$start = $jan1 - (int) gmdate( 'w', $jan1 ) * DAY_IN_SECONDS;
+	for ( $m = 1; $m <= 12; $m++ ) {
+		$t    = strtotime( sprintf( '%d-%02d-01', $ref, $m ) );
+		$col  = (int) floor( ( $t - $start ) / WEEK_IN_SECONDS );
+		$svg .= '<text class="gw-axis-t" x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="10">' . esc_html( date_i18n( 'M', $t ) ) . '</text>';
+	}
+	$row = 0;
+	foreach ( $years as $y => $days ) {
+		$y0    = $top + $row * ( $band + $space );
+		$jan1  = strtotime( "$y-01-01" );
+		$start = $jan1 - (int) gmdate( 'w', $jan1 ) * DAY_IN_SECONDS;
+		foreach ( $days as $date => $n ) {
+			if ( 0 !== strpos( $date, (string) $y ) ) {
+				continue; // Only this year's days belong in its band.
+			}
+			$t      = strtotime( $date );
+			$col    = (int) floor( ( $t - $start ) / WEEK_IN_SECONDS );
+			$dow    = (int) gmdate( 'w', $t );
+			$level  = 0 === $n ? 0 : (int) min( 4, ceil( 4 * $n / $max ) );
+			$label  = sprintf( _n( '%1$s contribution on %2$s', '%1$s contributions on %2$s', $n, 'git-widget' ), number_format_i18n( $n ), date_i18n( 'M j, Y', $t ) );
+			$svg   .= '<rect class="gw-l' . $level . '" x="' . ( $left + $col * ( $cell + $gap ) ) . '" y="' . ( $y0 + $dow * ( $cell + $gap ) ) . '" width="' . $cell . '" height="' . $cell . '" rx="2"><title>' . esc_html( $label ) . '</title></rect>';
+		}
+		foreach ( array( 1 => __( 'Mon', 'git-widget' ), 3 => __( 'Wed', 'git-widget' ), 5 => __( 'Fri', 'git-widget' ) ) as $d => $l ) {
+			$svg .= '<text class="gw-axis-t" x="0" y="' . ( $y0 + $d * ( $cell + $gap ) + 9 ) . '">' . esc_html( $l ) . '</text>';
+		}
+		$mid  = $y0 + $band / 2;
+		$svg .= '<text class="gw-year-t" x="' . ( $left + $cols * ( $cell + $gap ) + 8 ) . '" y="' . ( $mid - 2 ) . '">' . (int) $y . '</text>'
+			. '<text class="gw-axis-t" x="' . ( $left + $cols * ( $cell + $gap ) + 8 ) . '" y="' . ( $mid + 12 ) . '">' . esc_html( sprintf( _n( '%s contribution', '%s contributions', array_sum( $days ), 'git-widget' ), number_format_i18n( array_sum( $days ) ) ) ) . '</text>';
+		$row++;
+	}
+	$width  = $left + $cols * ( $cell + $gap ) + $right;
+	$height = $top + $row * ( $band + $space );
+	return '<svg class="gw-cal gw-cal-joined wp-dark-mode-ignore" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '"><g class="gw-axis">' . $svg . '</g></svg>';
 }
 
 /**
