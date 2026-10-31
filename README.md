@@ -1,2 +1,71 @@
-# WordPress_Git-Widget
-A Github widget designed to seamlessly embed git activity into your wordpress website, using elementor, beaver builder, or gutenberg. 
+# Git Widget for WordPress
+
+Embed your GitHub activity anywhere on a WordPress site: profile and bio, organisations, the contribution calendar, an activity overview, contribution types, monthly and yearly charts, and achievements.
+
+Use it as a **Beaver Builder module** or the **`[git_widget]` shortcode**. Gutenberg and Elementor support are planned (see the v0.2 milestone).
+
+## Sections
+
+| Key | Shows | Needs a token? |
+|---|---|---|
+| `profile` | Photo, name, username, bio, company, location, website, followers, following, public repositories | No |
+| `organisations` | Public organisations | No |
+| `calendar` | Contribution calendar for the last 12 months or a chosen year | No |
+| `overview` | Contributions, active days, current and longest streak, busiest day | No |
+| `types` | Commits vs pull requests vs issues vs code reviews, plus private contributions | Yes |
+| `monthly` | Contributions per month (bar chart) | No |
+| `yearly` | Contributions per year (bar chart) | Recommended |
+| `achievements` | Achievement badges with tiers | No |
+
+Mix any of them in one widget, or spread them across several widgets on the same page. Each widget is independent.
+
+## Setup
+
+1. Install and activate the plugin.
+2. Go to **Settings → Git Widget** and enter your GitHub username.
+3. Optional: add a GitHub token. A fine-grained token with **no permissions** is enough; it only reads public data. It unlocks contribution types and makes the yearly chart exact.
+
+GitHub data is cached (6 hours by default). **Refresh GitHub data now** clears the cache.
+
+## Beaver Builder
+
+Add the **GitHub Widget** module (category *Git Widget*).
+
+- **Content:** sections (in the order you pick them), username (defaults to the one in settings), heading, year, years in the yearly chart
+- **Style:** accent colour, background (match the page, light card or dark card), stacked or side-by-side layout, View on GitHub link
+
+## Shortcode
+
+```text
+[git_widget sections="profile,organisations"]
+[git_widget sections="overview,calendar" theme="dark" accent="#8250df" title="This year on GitHub"]
+[git_widget sections="monthly" year="2025"]
+[git_widget sections="yearly" years="8" user="octocat" show_link="no"]
+```
+
+| Attribute | Default | Values |
+|---|---|---|
+| `sections` | `profile` | Comma-separated keys from the table above |
+| `user` | settings | GitHub username |
+| `year` | last 12 months | e.g. `2025` |
+| `years` | `6` | 1–20 |
+| `accent` | `#2da44e` | Any hex colour |
+| `theme` | `auto` | `auto`, `light`, `dark` |
+| `layout` | `stack` | `stack`, `grid` |
+| `title` | none | Heading text |
+| `show_link` | `yes` | `yes`, `no` |
+
+## How the data is fetched
+
+- Profile and organisations: GitHub REST API.
+- Calendar: GitHub GraphQL with a token, otherwise GitHub's public contributions page.
+- Contribution types and years: GitHub GraphQL (token).
+- Achievements: the public profile page (GitHub has no API for them).
+
+## Development
+
+`php dev/preview.php > preview.html` renders every section with sample data, in a light and a dark container, without WordPress.
+
+## License
+
+GPL-2.0-or-later.
