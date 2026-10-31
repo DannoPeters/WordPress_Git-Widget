@@ -22,6 +22,8 @@ function gw_sections() {
 		'profile'      => __( 'Profile (photo, name, bio, links)', 'git-widget' ),
 		'organisations' => __( 'Organisations', 'git-widget' ),
 		'calendar'      => __( 'Contribution calendar', 'git-widget' ),
+		'overview'      => __( 'Activity overview (totals and streaks)', 'git-widget' ),
+		'types'         => __( 'Contribution types (commits, pull requests, issues, reviews)', 'git-widget' ),
 	);
 }
 
@@ -223,6 +225,113 @@ function gw_section_calendar( $user, $a ) {
 		. '<div class="gw-cal-scroll"><svg class="gw-cal" viewBox="0 0 ' . $width . ' ' . $height . '" role="img" aria-label="' . esc_attr( $title ) . '">'
 		. '<g class="gw-axis">' . $month . $labels . '</g>' . $rects . '</svg></div>'
 		. '<p class="gw-legend">' . esc_html__( 'Less', 'git-widget' ) . ' ' . $legend . ' ' . esc_html__( 'More', 'git-widget' ) . '</p>';
+}
+
+/**
+ * Streaks and other figures from a calendar.
+ *
+ * @param array $days Date => count, in date order.
+ * @return array total, active, current, longest, best_day, best_count.
+ */
+function gw_calendar_stats( $days ) {
+	$current = 0;
+	$longest = 0;
+	$run     = 0;
+	$best    = '';
+	foreach ( $days as $date => $n ) {
+		$run     = $n > 0 ? $run + 1 : 0;
+		$longest = max( $longest, $run );
+		if ( '' === $best || $n > $days[ $best ] ) {
+			$best = $date;
+		}
+	}
+	// The current streak may include today even if today has no contributions yet.
+	$rev = array_reverse( $days, true );
+	$i   = 0;
+	foreach ( $rev as $n ) {
+		if ( $n > 0 ) {
+			$current++;
+		} elseif ( 0 !== $i ) {
+			break;
+		}
+		$i++;
+	}
+	return array(
+		'total'      => array_sum( $days ),
+		'active'     => count( array_filter( $days ) ),
+		'current'    => $current,
+		'longest'    => $longest,
+		'best_day'   => $best,
+		'best_count' => $best ? $days[ $best ] : 0,
+	);
+}
+
+/**
+ * Activity overview: contributions, active days, current and longest streak, busiest day.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_overview( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$cal  = gw_calendar( $user, $year );
+	if ( is_wp_error( $cal ) ) {
+		return gw_error( $cal );
+	}
+	$st    = gw_calendar_stats( $cal['days'] );
+	$tiles = array(
+		array( gw_num( $st['total'] ), $year ? sprintf( __( 'contributions in %d', 'git-widget' ), $year ) : __( 'contributions in the last year', 'git-widget' ) ),
+		array( gw_num( $st['active'] ), __( 'active days', 'git-widget' ) ),
+		array( $st['current'], __( 'day current streak', 'git-widget' ) ),
+		array( $st['longest'], __( 'day longest streak', 'git-widget' ) ),
+	);
+	$out = '<p class="gw-label">' . esc_html__( 'Activity overview', 'git-widget' ) . '</p><div class="gw-tiles">';
+	foreach ( $tiles as $t ) {
+		$out .= '<div class="gw-tile"><strong>' . esc_html( $t[0] ) . '</strong><span>' . esc_html( $t[1] ) . '</span></div>';
+	}
+	$out .= '</div>';
+	if ( $st['best_count'] ) {
+		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Busiest day: %1$s, with %2$s contributions.', 'git-widget' ), date_i18n( 'F j, Y', strtotime( $st['best_day'] ) ), number_format_i18n( $st['best_count'] ) ) ) . '</p>';
+	}
+	return $out;
+}
+
+/**
+ * Contribution types: share of commits, pull requests, issues and code reviews.
+ *
+ * @param string $user GitHub username.
+ * @param array  $a    Widget options (year).
+ * @return string HTML.
+ */
+function gw_section_types( $user, $a ) {
+	$year = (int) $a['year'] ? (int) $a['year'] : null;
+	$t    = gw_contribution_types( $user, $year );
+	if ( is_wp_error( $t ) ) {
+		return gw_error( $t );
+	}
+	$kinds = array(
+		'commits'       => __( 'Commits', 'git-widget' ),
+		'pull_requests' => __( 'Pull requests', 'git-widget' ),
+		'issues'        => __( 'Issues', 'git-widget' ),
+		'reviews'       => __( 'Code reviews', 'git-widget' ),
+	);
+	$total = max( 1, array_sum( array_intersect_key( $t, $kinds ) ) );
+	$bar   = '';
+	$rows  = '';
+	$i     = 0;
+	foreach ( $kinds as $k => $label ) {
+		$pct   = round( 100 * $t[ $k ] / $total, 1 );
+		$bar  .= '<span class="gw-k' . $i . '" style="width:' . esc_attr( $pct ) . '%" title="' . esc_attr( $label . ': ' . $pct . '%' ) . '"></span>';
+		$rows .= '<li><span class="gw-dot gw-k' . $i . '"></span><span class="gw-kind">' . esc_html( $label ) . '</span><strong>' . esc_html( number_format_i18n( $t[ $k ] ) ) . '</strong><span class="gw-pct">' . esc_html( round( $pct ) . '%' ) . '</span></li>';
+		$i++;
+	}
+	$out = '<p class="gw-label">' . esc_html( $year ? sprintf( __( 'Contribution types in %d', 'git-widget' ), $year ) : __( 'Contribution types, last 12 months', 'git-widget' ) ) . '</p>'
+		. '<div class="gw-bar" role="img" aria-label="' . esc_attr__( 'Share of contribution types', 'git-widget' ) . '">' . $bar . '</div><ul class="gw-types">' . $rows . '</ul>';
+	if ( $t['private'] ) {
+		$out .= '<p class="gw-small">' . esc_html( sprintf( __( 'Plus %s contributions to private repositories.', 'git-widget' ), number_format_i18n( $t['private'] ) ) ) . '</p>';
+	}
+	return $out;
 }
 
 /**

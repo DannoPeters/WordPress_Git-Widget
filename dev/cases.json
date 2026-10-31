@@ -4,5 +4,9 @@
  },
  "Contribution calendar": {
   "sections": "calendar"
+ },
+ "Overview and contribution types (grid layout)": {
+  "sections": "overview,types",
+  "layout": "grid"
  }
 }
