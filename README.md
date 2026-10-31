@@ -11,7 +11,7 @@ Use it as a **Beaver Builder module** or the **`[git_widget]` shortcode**. Guten
 | `profile` | Photo, name, username, bio, company, location, website, followers, following, public repositories | No |
 | `organisations` | Public organisations | No |
 | `calendar` | Contribution calendar for the last 12 months or a chosen year | No |
-| `overview` | Contributions, active days, current and longest streak, busiest day | No |
+| `overview` | Tiles of your choice (see below) for the last 12 months, a year, or all time | No |
 | `types` | Commits vs pull requests vs issues vs code reviews: GitHub's cross chart or a bar. Exact counts with a token; otherwise the profile's percentages (needs Activity overview turned on in GitHub) | No |
 | `monthly` | Contributions per month (bar chart) | No |
 | `yearly` | Contributions per year (bar chart) | Recommended |
@@ -61,6 +61,18 @@ Add the **GitHub Widget** module (category *Git Widget*).
 | `types_style` | `axes` | `axes` (cross chart), `bar` |
 | `bio_breaks` | `yes` | `yes` turns runs of 2+ underscores in the bio into one line break; `no` shows them |
 | `count` | `6` | Repositories or languages to list |
+
+## Activity overview metrics
+
+Pick any of these with `metrics="..."` (or the Beaver Builder *Metrics* list), and the time frame with `period="last|year|all"`:
+
+`contributions`, `active_days`, `current_streak`, `longest_streak`, `daily_average`, `busiest_day`, `commits`, `pull_requests`, `merged_prs`, `issues_opened`, `reviews`, `stars`, `forks`, `repositories`, `languages`, `followers`, `following`, `organisations`, `member_since`.
+
+Stars, forks, repositories, languages, followers, following, organisations and years on GitHub are always current. Commit, pull request, issue and review counts come from GitHub search, which works without a token.
+
+```text
+[git_widget sections="overview" metrics="contributions,commits,merged_prs,stars,forks" period="all"]
+```
 
 ## How the data is fetched
 

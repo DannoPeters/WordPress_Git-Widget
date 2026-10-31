@@ -53,6 +53,8 @@ class GW_BB_Module extends FLBuilderModule {
 			'types_style' => $s['types_style'] ?? 'axes',
 			'bio_breaks'  => $s['bio_breaks'] ?? 'yes',
 			'count'       => $s['count'] ?? 6,
+			'metrics'     => implode( ',', (array) ( $s['metrics'] ?? array() ) ),
+			'period'      => $s['period'] ?? '',
 		);
 	}
 }
@@ -116,6 +118,30 @@ FLBuilder::register_module(
 							'type'    => 'raw',
 							'content' => '<p style="margin:0 0 .4em">Made by <a href="https://github.com/DannoPeters" target="_blank" rel="noopener">@DannoPeters</a> in 🇨🇦</p>'
 								. '<p style="margin:0">Suggestions and bug reports are welcome on <a href="https://github.com/DannoPeters/WordPress_Git-Widget/issues" target="_blank" rel="noopener">GitHub</a> or at <a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters.ca</a>.</p>',
+						),
+					),
+				),
+				'overview' => array(
+					'title'  => __( 'Activity overview', 'git-widget' ),
+					'fields' => array(
+						'metrics' => array(
+							'type'         => 'select',
+							'label'        => __( 'Metrics', 'git-widget' ),
+							'multi-select' => true,
+							'options'      => gw_overview_metrics(),
+							'default'      => array( 'contributions', 'active_days', 'current_streak', 'longest_streak' ),
+							'help'         => __( 'Used when "Activity overview" is one of the sections. Stars, forks, repositories, languages, followers and years on GitHub are always current; the rest follow the time frame.', 'git-widget' ),
+						),
+						'period'  => array(
+							'type'    => 'select',
+							'label'   => __( 'Time frame', 'git-widget' ),
+							'default' => '',
+							'options' => array(
+								''     => __( 'Last 12 months (or the year chosen below)', 'git-widget' ),
+								'last' => __( 'Last 12 months', 'git-widget' ),
+								'year' => __( 'The year chosen below', 'git-widget' ),
+								'all'  => __( 'All time', 'git-widget' ),
+							),
 						),
 					),
 				),

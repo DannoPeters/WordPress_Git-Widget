@@ -109,3 +109,6 @@
 /* Running total */
 .gw-area polygon{fill:color-mix(in srgb,var(--gw-accent) 22%,transparent)}
 .gw-area polyline{fill:none;stroke:var(--gw-accent);stroke-width:2.5;stroke-linejoin:round}
+
+.gw-tile span{display:block}
+.gw-tile em{display:block;font-style:normal;font-size:.72rem;color:var(--gw-muted);opacity:.85}
