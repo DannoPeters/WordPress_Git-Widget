@@ -40,7 +40,12 @@ function gw_sections() {
  * @return array
  */
 function gw_defaults() {
-	return array(
+	/**
+	 * Filters the widget options and their defaults. Git Widget Pro adds its styling options here.
+	 *
+	 * @param array $defaults Option => default.
+	 */
+	return apply_filters( 'gw_defaults', array(
 		'user'      => '',
 		'sections'  => 'profile',
 		'year'      => '',
@@ -79,6 +84,33 @@ function gw_defaults() {
 		'chart_style'     => 'line',
 		'chart_fill'      => 'yes',
 		'period'      => '',
+	) );
+}
+
+/**
+ * Whether Git Widget Pro is installed and licensed. Pro hooks in through the gw_is_pro filter.
+ *
+ * @return bool
+ */
+function gw_is_pro() {
+	return (bool) apply_filters( 'gw_is_pro', false );
+}
+
+/**
+ * The options that need Git Widget Pro, and what they fall back to without it.
+ *
+ * @return array Option => free value.
+ */
+function gw_pro_options() {
+	return array(
+		'accent'          => '#2da44e', // The free version always uses GitHub's own green.
+		'tile_spark'      => 'no',
+		'tile_change'     => 'no',
+		'tile_highlight'  => 'off',
+		'tile_links'      => 'no',
+		'calendar_picker' => 'off',
+		'all_layout'      => 'separate',
+		'calendar_chart'  => 'off',
 	);
 }
 
@@ -89,7 +121,17 @@ function gw_defaults() {
  * @return string HTML.
  */
 function gw_render( $atts ) {
-	$a    = wp_parse_args( array_filter( (array) $atts, 'strlen' ), gw_defaults() );
+	$a = wp_parse_args( array_filter( (array) $atts, 'strlen' ), gw_defaults() );
+	if ( ! gw_is_pro() ) {
+		// Pro options quietly fall back to the free behaviour, so a page never breaks if Pro is removed.
+		$a = array_merge( $a, gw_pro_options() );
+	}
+	/**
+	 * Filters a widget's options just before it's drawn.
+	 *
+	 * @param array $a Widget options.
+	 */
+	$a    = apply_filters( 'gw_atts', $a );
 	$user = gw_clean_user( $a['user'] ? $a['user'] : gw_settings()['username'] );
 	if ( ! $user ) {
 		return current_user_can( 'manage_options' ) ? '<p class="gw-note">' . esc_html__( 'Git Widget: set a GitHub username in Settings > Git Widget or on the widget.', 'git-widget' ) . '</p>' : '';
@@ -99,6 +141,14 @@ function gw_render( $atts ) {
 	$id       = 'gw-' . wp_unique_id();
 	$classes  = array( 'gw', 'gw-theme-' . sanitize_html_class( $a['theme'] ), 'gw-layout-' . sanitize_html_class( $a['layout'] ) );
 	$style    = '--gw-accent:' . ( sanitize_hex_color( $a['accent'] ) ? sanitize_hex_color( $a['accent'] ) : '#2da44e' );
+	/**
+	 * Filters a widget's inline style (CSS custom properties) and classes. Pro uses these for its styling options.
+	 *
+	 * @param string $style   Inline style.
+	 * @param array  $a       Widget options.
+	 */
+	$style   = apply_filters( 'gw_widget_style', $style, $a );
+	$classes = apply_filters( 'gw_widget_classes', $classes, $a );
 
 	$out = '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( implode( ' ', $classes ) ) . '" style="' . esc_attr( $style ) . '">';
 	if ( '' !== $a['title'] ) {
@@ -116,7 +166,26 @@ function gw_render( $atts ) {
 	if ( 'yes' === $a['show_link'] ) {
 		$out .= '<p class="gw-footer"><a href="' . esc_url( 'https://github.com/' . $user ) . '" target="_blank" rel="noopener">' . esc_html( sprintf( __( 'View %s on GitHub', 'git-widget' ), '@' . $user ) ) . '</a></p>';
 	}
-	return $out . '</div>';
+	return $out . gw_credit() . '</div>';
+}
+
+/**
+ * The small "Git Widget by DannoPeters" line under each widget. Git Widget Pro removes it.
+ *
+ * @return string HTML.
+ */
+function gw_credit() {
+	$html = '<p class="gw-credit">' . sprintf(
+		/* translators: %s: link to the author's site */
+		esc_html__( 'Git Widget by %s', 'git-widget' ),
+		'<a href="https://dannopeters.ca" target="_blank" rel="noopener">DannoPeters</a>'
+	) . '</p>';
+	/**
+	 * Filters the credit line under each widget. Return "" to hide it.
+	 *
+	 * @param string $html Credit HTML.
+	 */
+	return (string) apply_filters( 'gw_credit', gw_is_pro() ? '' : $html );
 }
 
 /**

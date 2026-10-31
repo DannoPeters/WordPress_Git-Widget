@@ -135,5 +135,28 @@
   "tile_highlight": "auto",
   "tile_links": "yes",
   "metrics": "contributions,active_days,longest_streak,commits,stars,followers"
+ },
+ "Pro: custom colours, filled cards, rounder corners": {
+  "sections": "overview,calendar",
+  "period": "last",
+  "tile_spark": "yes",
+  "tile_highlight": "auto",
+  "calendar_picker": "list",
+  "picker_position": "bottom",
+  "calendar_chart": "month",
+  "accent": "#8250df",
+  "c_number": "#e85d04",
+  "c_cal1": "#fde2c8",
+  "c_cal2": "#f9a66c",
+  "c_cal3": "#f47b20",
+  "c_cal4": "#c2410c",
+  "c_chart": "#0ea5e9",
+  "c_star": "#e11d48",
+  "c_pick": "#0f766e",
+  "c_card": "rgba(130,80,223,.08)",
+  "c_label": "#0ea5e9",
+  "radius": "18",
+  "card_style": "filled",
+  "font": "Georgia, serif"
  }
 }

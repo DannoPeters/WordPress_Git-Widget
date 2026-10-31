@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 (2026-10-31)
+
+**Free core and Git Widget Pro** (#28)
+
+- The free plugin keeps every section and uses GitHub's own colours
+- Pro features need the Git Widget Pro add-on: custom colours for every part, type and card styling, the visitor year picker, the joined all-years calendar and trend chart, and the overview extras. Without Pro those settings are marked (Pro) and quietly fall back, so pages never break
+- A small "Git Widget by DannoPeters" line under each widget; Pro removes it
+- New hooks for add-ons: gw_is_pro, gw_defaults, gw_atts, gw_widget_style, gw_widget_classes, gw_credit, gw_bb_form, gw_bb_atts
+- Every colour in the stylesheet is now a CSS variable (--gw-c-*) with the GitHub colour as its fallback
+
 ## 0.1.10 (2026-10-31)
 
 - Overview tile extras, each a separate switch: a tiny trend line, a change badge against the previous period, a highlighted tile (your best figure or one you pick) and links to GitHub (#26)

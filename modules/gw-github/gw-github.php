@@ -40,7 +40,7 @@ class GW_BB_Module extends FLBuilderModule {
 		$s        = (array) $settings;
 		$sections = $s['sections'] ?? array( 'profile' );
 		$accent   = (string) ( $s['accent'] ?? '' );
-		return array(
+		$atts = array(
 			'sections'  => implode( ',', (array) $sections ),
 			'user'      => $s['user'] ?? '',
 			'year'      => $s['year'] ?? '',
@@ -79,6 +79,13 @@ class GW_BB_Module extends FLBuilderModule {
 			'chart_style'     => $s['chart_style'] ?? 'line',
 			'chart_fill'      => $s['chart_fill'] ?? 'yes',
 		);
+		/**
+		 * Filters the widget options built from a module's settings. Git Widget Pro passes its own settings through here.
+		 *
+		 * @param array $atts     Widget options.
+		 * @param array $settings Module settings.
+		 */
+		return apply_filters( 'gw_bb_atts', $atts, $s );
 	}
 
 	/**
@@ -131,9 +138,40 @@ for ( $gw_y = (int) gmdate( 'Y' ); $gw_y >= 2008; $gw_y-- ) {
 	$gw_years[ (string) $gw_y ] = (string) $gw_y;
 }
 
+/**
+ * Without Git Widget Pro, mark the Pro settings so it's clear why they don't change anything, and keep the
+ * About credit. With Pro, drop the credit.
+ *
+ * @param array $form Module settings form.
+ * @return array
+ */
+function gw_bb_mark_pro( $form ) {
+	$pro = gw_pro_options();
+	foreach ( $form as $tab => $t ) {
+		foreach ( $t['sections'] ?? array() as $sec => $section ) {
+			if ( 'credit' === $sec && gw_is_pro() ) {
+				unset( $form[ $tab ]['sections'][ $sec ] );
+				continue;
+			}
+			foreach ( $section['fields'] ?? array() as $key => $field ) {
+				if ( isset( $pro[ $key ] ) && ! gw_is_pro() ) {
+					$form[ $tab ]['sections'][ $sec ]['fields'][ $key ]['label'] = $field['label'] . ' (Pro)';
+					$form[ $tab ]['sections'][ $sec ]['fields'][ $key ]['help']  = __( 'Needs Git Widget Pro. Without it this setting is ignored.', 'git-widget' );
+				}
+			}
+		}
+	}
+	return $form;
+}
+
 FLBuilder::register_module(
 	'GW_BB_Module',
-	array(
+	/**
+	 * Filters the Beaver Builder settings form. Git Widget Pro adds its colour and styling tabs here.
+	 *
+	 * @param array $form Settings form.
+	 */
+	gw_bb_mark_pro( apply_filters( 'gw_bb_form', array(
 		'content' => array(
 			'title'    => __( 'Content', 'git-widget' ),
 			'sections' => array(
@@ -486,5 +524,5 @@ FLBuilder::register_module(
 				),
 			),
 		),
-	)
+	) ) )
 );
