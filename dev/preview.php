@@ -22,6 +22,8 @@ function esc_url( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES ); }
 function sanitize_html_class( $s ) { return preg_replace( '/[^A-Za-z0-9_-]/', '', $s ); }
 function sanitize_hex_color( $c ) { return preg_match( '/^#[0-9a-f]{3,6}$/i', $c ) ? $c : null; }
 function sanitize_title( $s ) { return strtolower( trim( preg_replace( '/[^A-Za-z0-9]+/', '-', $s ), '-' ) ); }
+function wp_register_style() {}
+function wp_add_inline_style() {}
 function wp_parse_args( $a, $d ) { return array_merge( $d, (array) $a ); }
 function wp_unique_id() { static $i = 0; return ++$i; }
 function current_user_can() { return true; }
@@ -42,6 +44,21 @@ function plugin_dir_path( $f ) { return dirname( $f ) . '/'; }
 function plugin_dir_url( $f ) { return ''; }
 function date_i18n( $f, $t ) { return gmdate( $f, $t ); }
 function wp_date( $f, $t ) { return gmdate( $f, $t ); }
+function add_filter( $h, $f, $p = 10, $n = 1 ) { $GLOBALS['gw_f'][ $h ][] = array( $f, $n ); }
+function apply_filters( $h, $v, ...$args ) { foreach ( $GLOBALS['gw_f'][ $h ] ?? array() as $f ) { $v = call_user_func_array( $f[0], array_slice( array_merge( array( $v ), $args ), 0, max( 1, $f[1] ) ) ); } return $v; }
+function __return_true() { return true; }
+if ( getenv( 'GW_PRO' ) ) {
+	add_filter( 'gw_is_pro', '__return_true' );
+	// Point GW_PRO_DIR at a Git Widget Pro checkout to preview its styling too.
+	if ( getenv( 'GW_PRO_DIR' ) ) {
+		define( 'GWP_VERSION', 'dev' );
+		require getenv( 'GW_PRO_DIR' ) . '/includes/style.php';
+		add_filter( 'gw_defaults', 'gwp_defaults' );
+		add_filter( 'gw_widget_style', 'gwp_widget_style', 10, 2 );
+		add_filter( 'gw_widget_classes', 'gwp_widget_classes', 10, 2 );
+	}
+}
+function esc_html_e( $s ) { echo htmlspecialchars( $s ); }
 function wp_remote_get() { return new WP_Error( 'offline', 'The preview has no network.' ); }
 function wp_remote_post() { return new WP_Error( 'offline', 'The preview has no network.' ); }
 

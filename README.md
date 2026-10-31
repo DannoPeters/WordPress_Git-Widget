@@ -111,3 +111,21 @@ Made by [@DannoPeters](https://github.com/DannoPeters) in 🇨🇦. Suggestions 
 ## License
 
 GPL-2.0-or-later.
+
+## Free and Pro
+
+Everything in this repo is free and stays free: every section, every chart, the phone-friendly layouts and the shortcode. It uses GitHub's own colours and puts a small "Git Widget by DannoPeters" line under each widget.
+
+**Git Widget Pro** is a separate add-on you install next to this one. It unlocks:
+
+- your own colour for every part of the widget (text, borders, cards, numbers, each calendar level, charts, badges, the year picker and more), set site-wide or per widget
+- font, text size, corner radius and card style (outline, filled, shadow or flat)
+- the visitor year picker, the joined all-years calendar and the trend chart above it
+- overview extras: trend lines, change badges, a highlighted tile and links to GitHub
+- no credit line
+
+If Pro is ever removed, widgets don't break. The Pro settings just fall back to the free behaviour.
+
+### For add-on builders
+
+The core exposes filters so add-ons can plug in: `gw_is_pro`, `gw_defaults`, `gw_atts`, `gw_widget_style`, `gw_widget_classes`, `gw_credit`, `gw_bb_form` and `gw_bb_atts`. Every colour is a CSS variable (`--gw-c-text`, `--gw-c-cal1`, `--gw-c-chart` and friends) that falls back to the GitHub colour.
