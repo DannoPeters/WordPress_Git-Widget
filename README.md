@@ -59,6 +59,10 @@ Same options, typed out:
 | `tiles_cols_d` / `_t` / `_m` | `auto`, `auto`, `2` | Overview tiles per row on desktop, tablet and mobile: `auto`, `1`, `2`, `3`, `4` or `6` |
 | `tiles_size_d` / `_t` / `_m` | `normal`, `normal`, `small` | Tile text size: `normal`, `small` or `smaller` |
 | `tiles_text_d` / `_t` / `_m` | `full`, `full`, `short` | Tile labels: `full` ("Contributions"), `short` ("Contribs") or `none` (numbers only) |
+| `tile_spark` | `no` | `yes` adds a tiny month-by-month trend line to contribution, active day and streak tiles |
+| `tile_change` | `no` | `yes` adds a +12% style badge compared with the year before (not for all time) |
+| `tile_highlight` | `off` | `auto` highlights your strongest figure, or name a metric (like `longest_streak`) to highlight that one |
+| `tile_links` | `no` | `yes` makes each tile link to the matching page on GitHub |
 | `cal_small` | `scroll` | The calendar on small screens: `scroll`, `fused` (two 6-month rows pressed together, months above and below) or `between` (two rows with the months in between) |
 | `all_layout` | `joined` | All-time calendar as one `joined` block or `separate` years |
 | `calendar_chart` | `off` | Chart above the calendar: `year`, `month` or `day` |

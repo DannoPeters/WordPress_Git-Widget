@@ -61,6 +61,10 @@ class GW_BB_Module extends FLBuilderModule {
 			'picker_position' => $s['picker_position'] ?? 'right',
 			'picker_small'    => $s['picker_small'] ?? 'wrap',
 			'cal_small'       => $s['cal_small'] ?? 'scroll',
+			'tile_spark'      => $s['tile_spark'] ?? 'no',
+			'tile_change'     => $s['tile_change'] ?? 'no',
+			'tile_highlight'  => $s['tile_highlight'] ?? 'off',
+			'tile_links'      => $s['tile_links'] ?? 'no',
 			'tiles_cols_d' => $s['tiles_cols_d'] ?? 'auto',
 			'tiles_cols_t' => $s['tiles_cols_t'] ?? 'auto',
 			'tiles_cols_m' => $s['tiles_cols_m'] ?? '2',
@@ -223,6 +227,37 @@ FLBuilder::register_module(
 				'overview_metrics' => array(
 					'title'  => __( 'Activity overview: stats to show', 'git-widget' ),
 					'fields' => gw_bb_metric_switches(),
+				),
+				'overview_extras' => array(
+					'title'  => __( 'Activity overview extras', 'git-widget' ),
+					'fields' => array(
+						'tile_spark'     => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Tiny trend line under each number', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'no' => __( 'Off', 'git-widget' ), 'yes' => __( 'On', 'git-widget' ) ),
+							'help'    => __( 'Month by month (year by year for all time). Shows on contribution, active day and streak tiles.', 'git-widget' ),
+						),
+						'tile_change'    => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Change from the period before', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'no' => __( 'Off', 'git-widget' ), 'yes' => __( 'On', 'git-widget' ) ),
+							'help'    => __( 'A +12% style badge compared with the previous year (or the 12 months before). Not shown for all time.', 'git-widget' ),
+						),
+						'tile_highlight' => array(
+							'type'    => 'select',
+							'label'   => __( 'Highlight a tile', 'git-widget' ),
+							'default' => 'off',
+							'options' => array_merge( array( 'off' => __( 'Off', 'git-widget' ), 'auto' => __( 'Automatically: my best figure', 'git-widget' ) ), gw_overview_metrics() ),
+						),
+						'tile_links'     => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Tiles link to GitHub', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'no' => __( 'Off', 'git-widget' ), 'yes' => __( 'On', 'git-widget' ) ),
+						),
+					),
 				),
 				'overview_screens' => array(
 					'title'  => __( 'Activity overview on each screen size', 'git-widget' ),
