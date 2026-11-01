@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 (2026-11-01)
+
+- Share a look across widgets: each widget can use its own style, match a site-wide style (set on Settings > Git Widget), or match the first widget on the page
+- A site-wide style (accent, background, layout, contribution-types chart) on the settings page
+- A widget can follow a page-wide year, and a visitor year picker can be set to change the year for every following widget on the page at once (through a ?gw_year= link)
+
+## 0.3.0 (2026-11-01)
+
+- Simpler Beaver Builder settings: each part of the widget now has its own Show / Hide switch, and a part's options only appear once it is turned on
+- Options for a part you are not showing stay out of the way, so the panel only ever shows what is relevant
+- Widgets saved before this update keep working unchanged
+
 ## 0.2.1 (2026-10-31)
 
 - Licensed under GPL-3.0-or-later, with one additional term under section 7(b) (see ADDITIONAL-TERMS.md)
