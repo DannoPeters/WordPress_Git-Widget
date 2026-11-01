@@ -38,7 +38,7 @@ class GW_BB_Module extends FLBuilderModule {
 	 */
 	public static function to_atts( $settings ) {
 		$s        = (array) $settings;
-		$sections = $s['sections'] ?? array( 'profile' );
+		$sections = self::sections( $s );
 		$accent   = (string) ( $s['accent'] ?? '' );
 		$atts = array(
 			'sections'  => implode( ',', (array) $sections ),
@@ -105,6 +105,28 @@ class GW_BB_Module extends FLBuilderModule {
 			}
 		}
 		return $on ? implode( ',', $on ) : 'awesome';
+	}
+
+	/**
+	 * Which sections to show, in the usual order, from the per-section On/Off switches. Widgets saved before
+	 * the switches still carry a "sections" list, so fall back to that.
+	 *
+	 * @param array $s Module settings.
+	 * @return array
+	 */
+	public static function sections( $s ) {
+		$has = false;
+		foreach ( array_keys( gw_sections() ) as $key ) {
+			if ( isset( $s[ 'show_' . $key ] ) ) { $has = true; break; }
+		}
+		if ( ! $has ) {
+			return (array) ( $s['sections'] ?? array( 'profile' ) );
+		}
+		$on = array();
+		foreach ( array_keys( gw_sections() ) as $key ) {
+			if ( 'yes' === ( $s[ 'show_' . $key ] ?? ( 'profile' === $key ? 'yes' : 'no' ) ) ) { $on[] = $key; }
+		}
+		return $on;
 	}
 }
 
@@ -178,13 +200,89 @@ FLBuilder::register_module(
 				'what' => array(
 					'title'  => __( 'What to show', 'git-widget' ),
 					'fields' => array(
-						'sections' => array(
-							'type'         => 'select',
-							'label'        => __( 'Sections', 'git-widget' ),
-							'multi-select' => true,
-							'options'      => gw_sections(),
-							'default'      => array( 'profile' ),
-							'help'         => __( 'Hold Ctrl or Cmd to pick several. They appear in this order. Add another GitHub Widget module to show other sections elsewhere on the page.', 'git-widget' ),
+						'sections_note' => array(
+							'type'    => 'raw',
+							'content' => '<p style="margin:.2em 0 .6em"><strong>' . esc_html__( 'What to show', 'git-widget' ) . '</strong><br><span style="opacity:.8">' . esc_html__( 'Turn on a part and its own options appear below. Add another module to place parts elsewhere on the page.', 'git-widget' ) . '</span></p>',
+						),
+						'show_profile' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Profile', 'git-widget' ),
+							'default' => 'yes',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'profileopts' ) ) ),
+						),
+						'show_organisations' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Organisations', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+						),
+						'show_calendar' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Contribution calendar', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'calendar', 'when', 'gwp_calendar' ) ) ),
+						),
+						'show_overview' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Activity overview', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'overview', 'overview_extras', 'overview_screens', 'when', 'gwp_overview' ) ) ),
+						),
+						'show_types' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Contribution types', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'typesopts', 'when' ) ) ),
+						),
+						'show_monthly' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Contributions per month', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'when' ) ) ),
+						),
+						'show_yearly' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Contributions per year', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'yearlyopts' ) ) ),
+						),
+						'show_achievements' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Achievements', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+						),
+						'show_languages' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Top languages', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'lists' ) ) ),
+						),
+						'show_repositories' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Top repositories', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+							'toggle'  => array( 'yes' => array( 'sections' => array( 'lists' ) ) ),
+						),
+						'show_weekdays' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Activity by day of the week', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
+						),
+						'show_cumulative' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Contributions over time', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'yes' => __( 'Show', 'git-widget' ), 'no' => __( 'Hide', 'git-widget' ) ),
 						),
 						'user'     => array(
 							'type'        => 'text',
@@ -203,15 +301,6 @@ FLBuilder::register_module(
 							'options' => array(
 								'yes' => __( 'On', 'git-widget' ),
 								'no'  => __( 'Off', 'git-widget' ),
-							),
-						),
-						'bio_breaks' => array(
-							'type'    => 'select',
-							'label'   => __( 'Underscores in bio', 'git-widget' ),
-							'default' => 'yes',
-							'options' => array(
-								'yes' => __( 'Start a new line (__ or ____ = one line break)', 'git-widget' ),
-								'no'  => __( 'Show as typed', 'git-widget' ),
 							),
 						),
 					),
@@ -357,8 +446,22 @@ FLBuilder::register_module(
 						),
 					),
 				),
-				'period' => array(
-					'title'  => __( 'Time period', 'git-widget' ),
+				'profileopts' => array(
+					'title'  => __( 'Profile options', 'git-widget' ),
+					'fields' => array(
+						'bio_breaks' => array(
+							'type'    => 'select',
+							'label'   => __( 'Underscores in bio', 'git-widget' ),
+							'default' => 'yes',
+							'options' => array(
+								'yes' => __( 'Start a new line (__ or ____ = one line break)', 'git-widget' ),
+								'no'  => __( 'Show as typed', 'git-widget' ),
+							),
+						),
+					),
+				),
+				'calendar' => array(
+					'title'  => __( 'Contribution calendar', 'git-widget' ),
 					'fields' => array(
 						'calendar_period' => array(
 							'type'    => 'select',
@@ -392,7 +495,6 @@ FLBuilder::register_module(
 								'day'   => __( 'Contributions per day', 'git-widget' ),
 							),
 							'toggle'  => array(
-								'year'  => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
 								'month' => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
 								'day'   => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
 							),
@@ -464,12 +566,42 @@ FLBuilder::register_module(
 							'options' => $gw_years,
 							'help'    => __( 'Used by the calendar, overview, contribution types and monthly chart.', 'git-widget' ),
 						),
+					),
+				),
+				'when' => array(
+					'title'  => __( 'Which year', 'git-widget' ),
+					'fields' => array(
+								'year'  => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
+					),
+				),
+				'typesopts' => array(
+					'title'  => __( 'Contribution types', 'git-widget' ),
+					'fields' => array(
+						'types_style' => array(
+							'type'    => 'select',
+							'label'   => __( 'Contribution types chart', 'git-widget' ),
+							'default' => 'axes',
+							'options' => array(
+								'axes' => __( 'Cross chart (like GitHub)', 'git-widget' ),
+								'bar'  => __( 'Bar with counts', 'git-widget' ),
+							),
+						),
+					),
+				),
+				'lists' => array(
+					'title'  => __( 'How many to list', 'git-widget' ),
+					'fields' => array(
 						'count' => array(
 							'type'    => 'unit',
 							'label'   => __( 'Repositories / languages to list', 'git-widget' ),
 							'default' => 6,
 							'slider'  => array( 'min' => 1, 'max' => 12, 'step' => 1 ),
 						),
+					),
+				),
+				'yearlyopts' => array(
+					'title'  => __( 'Yearly chart', 'git-widget' ),
+					'fields' => array(
 						'years' => array(
 							'type'    => 'unit',
 							'label'   => __( 'Years in the yearly chart', 'git-widget' ),
@@ -509,15 +641,6 @@ FLBuilder::register_module(
 							'options' => array(
 								'stack' => __( 'Stacked', 'git-widget' ),
 								'grid'  => __( 'Side by side when there is room', 'git-widget' ),
-							),
-						),
-						'types_style' => array(
-							'type'    => 'select',
-							'label'   => __( 'Contribution types chart', 'git-widget' ),
-							'default' => 'axes',
-							'options' => array(
-								'axes' => __( 'Cross chart (like GitHub)', 'git-widget' ),
-								'bar'  => __( 'Bar with counts', 'git-widget' ),
 							),
 						),
 					),
