@@ -78,6 +78,9 @@ class GW_BB_Module extends FLBuilderModule {
 			'calendar_chart'  => $s['calendar_chart'] ?? 'off',
 			'chart_style'     => $s['chart_style'] ?? 'line',
 			'chart_fill'      => $s['chart_fill'] ?? 'yes',
+			'style_sync'       => $s['style_sync'] ?? 'self',
+			'year_source'      => $s['year_source'] ?? 'self',
+			'picker_sets_page' => $s['picker_sets_page'] ?? 'no',
 		);
 		/**
 		 * Filters the widget options built from a module's settings. Git Widget Pro passes its own settings through here.
@@ -526,8 +529,18 @@ FLBuilder::register_module(
 								'dropdown' => __( 'Dropdown', 'git-widget' ),
 								'list'     => __( 'List of years', 'git-widget' ),
 							),
-							'toggle'  => array( 'list' => array( 'fields' => array( 'picker_position', 'picker_small' ) ) ),
+							'toggle'  => array(
+								'dropdown' => array( 'fields' => array( 'picker_sets_page' ) ),
+								'list'     => array( 'fields' => array( 'picker_position', 'picker_small', 'picker_sets_page' ) ),
+							),
 							'help'    => __( 'Visitors can switch between the last 12 months, each year and all years. The setting above picks what shows first.', 'git-widget' ),
+						),
+						'picker_sets_page' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Picking a year updates the page', 'git-widget' ),
+							'default' => 'no',
+							'options' => array( 'no' => __( 'Off', 'git-widget' ), 'yes' => __( 'On', 'git-widget' ) ),
+							'help'    => __( 'When a visitor picks a year, reload the page so every widget set to "Follow the page" updates to that year too.', 'git-widget' ),
 						),
 						'picker_position' => array(
 							'type'    => 'button-group',
@@ -571,6 +584,16 @@ FLBuilder::register_module(
 				'when' => array(
 					'title'  => __( 'Which year', 'git-widget' ),
 					'fields' => array(
+						'year_source' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Year applies to', 'git-widget' ),
+							'default' => 'self',
+							'options' => array(
+								'self' => __( 'Just this widget', 'git-widget' ),
+								'page' => __( 'Follow the page', 'git-widget' ),
+							),
+							'help'    => __( '"Follow the page" uses the year a visitor picks from a year picker elsewhere on the page.', 'git-widget' ),
+						),
 								'year'  => array( 'fields' => array( 'chart_style', 'chart_fill' ) ),
 					),
 				),
@@ -618,6 +641,17 @@ FLBuilder::register_module(
 				'look' => array(
 					'title'  => __( 'Look', 'git-widget' ),
 					'fields' => array(
+						'style_sync' => array(
+							'type'    => 'select',
+							'label'   => __( 'Match other widgets', 'git-widget' ),
+							'default' => 'self',
+							'options' => array(
+								'self' => __( 'Use this widget\'s own style', 'git-widget' ),
+								'site' => __( 'Match the site style', 'git-widget' ),
+								'page' => __( 'Match the first widget on this page', 'git-widget' ),
+							),
+							'help'    => __( 'Keep colours and style the same across widgets. The site style is set on Settings > Git Widget (and, with Pro, Git Widget Pro).', 'git-widget' ),
+						),
 						'accent'    => array(
 							'type'       => 'color',
 							'label'      => __( 'Accent colour', 'git-widget' ),
