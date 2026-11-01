@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Plugin version, used to version assets. */
 define( 'GW_VERSION', '0.2.1' );
+/** This plugin's main file, for activation and deactivation hooks. */
+define( 'GW_FILE', __FILE__ );
 /** Absolute path to this plugin's folder, with a trailing slash. */
 define( 'GW_DIR', plugin_dir_path( __FILE__ ) );
 /** URL of this plugin's folder, with a trailing slash. */
@@ -25,6 +27,7 @@ define( 'GW_URL', plugin_dir_url( __FILE__ ) );
 
 require_once GW_DIR . 'includes/settings.php';
 require_once GW_DIR . 'includes/github.php';
+require_once GW_DIR . 'includes/preload.php';
 require_once GW_DIR . 'includes/render.php';
 require_once GW_DIR . 'includes/shortcode.php';
 require_once GW_DIR . 'includes/beaver-builder.php';
