@@ -83,8 +83,87 @@ function gw_defaults() {
 		'calendar_chart'  => 'off',
 		'chart_style'     => 'line',
 		'chart_fill'      => 'yes',
+		'style_sync'      => 'self',
+		'year_source'     => 'self',
+		'picker_sets_page' => 'no',
 		'period'      => '',
 	) );
+}
+
+/**
+ * The style options that can be shared between widgets. Pro adds its colour and shape keys through the filter.
+ *
+ * @return array Option keys.
+ */
+function gw_style_keys() {
+	return (array) apply_filters( 'gw_style_keys', array( 'accent', 'theme', 'layout', 'types_style' ) );
+}
+
+/**
+ * The site-wide shared style, set on Settings > Git Widget (and, with Pro, Settings > Git Widget Pro).
+ *
+ * @return array Option key => value.
+ */
+function gw_site_style() {
+	return (array) apply_filters( 'gw_site_style', (array) get_option( 'gw_style', array() ) );
+}
+
+/**
+ * The year chosen for the whole page, from the ?gw_year= address a visitor picker sets. "all" and "last" are
+ * allowed as well as a four-digit year.
+ *
+ * @return string Year, "all", "last", or "" when none is set.
+ */
+function gw_page_year() {
+	$y = isset( $_GET['gw_year'] ) ? sanitize_text_field( wp_unslash( $_GET['gw_year'] ) ) : '';
+	if ( in_array( $y, array( 'all', 'last' ), true ) ) {
+		return $y;
+	}
+	return ( preg_match( '/^\d{4}$/', $y ) && (int) $y >= 2008 && (int) $y <= (int) gmdate( 'Y' ) + 1 ) ? $y : '';
+}
+
+/**
+ * Apply the page-wide year and the shared style to one widget's options, when it is set to follow them.
+ *
+ * @param array $a Widget options.
+ * @return array
+ */
+function gw_apply_sync( $a ) {
+	if ( 'page' === ( $a['year_source'] ?? 'self' ) ) {
+		$py = gw_page_year();
+		if ( 'all' === $py ) {
+			$a['period'] = 'all'; $a['calendar_period'] = 'all'; $a['year'] = '';
+		} elseif ( 'last' === $py ) {
+			$a['period'] = 'last'; $a['calendar_period'] = 'last'; $a['year'] = '';
+		} elseif ( '' !== $py ) {
+			$a['period'] = 'year'; $a['calendar_period'] = 'year'; $a['year'] = $py;
+		}
+	}
+	$mode = $a['style_sync'] ?? 'self';
+	$keys = gw_style_keys();
+	if ( 'site' === $mode ) {
+		$src = gw_site_style();
+		foreach ( $keys as $k ) {
+			if ( isset( $src[ $k ] ) && '' !== $src[ $k ] ) {
+				$a[ $k ] = $src[ $k ];
+			}
+		}
+	} elseif ( 'page' === $mode ) {
+		static $lead = null;
+		if ( null === $lead ) {
+			$lead = array();
+			foreach ( $keys as $k ) {
+				$lead[ $k ] = $a[ $k ] ?? '';
+			}
+		} else {
+			foreach ( $keys as $k ) {
+				if ( '' !== ( $lead[ $k ] ?? '' ) ) {
+					$a[ $k ] = $lead[ $k ];
+				}
+			}
+		}
+	}
+	return $a;
 }
 
 /**
@@ -132,6 +211,7 @@ function gw_render( $atts ) {
 	 * @param array $a Widget options.
 	 */
 	$a    = apply_filters( 'gw_atts', $a );
+	$a    = gw_apply_sync( $a );
 	$user = gw_clean_user( $a['user'] ? $a['user'] : gw_settings()['username'] );
 	if ( ! $user ) {
 		return current_user_can( 'manage_options' ) ? '<p class="gw-note">' . esc_html__( 'Git Widget: set a GitHub username in Settings > Git Widget or on the widget.', 'git-widget' ) . '</p>' : '';
@@ -564,7 +644,8 @@ function gw_calendar_picker( $user, $start, $a ) {
 		$picker = '<label class="gw-cal-select"><span class="screen-reader-text">' . esc_html__( 'Choose a year', 'git-widget' ) . '</span><select>' . $nav . '</select></label>';
 		$class  = 'gw-cal-picker gw-pick-dropdown';
 	}
-	return '<div class="' . esc_attr( $class ) . '" data-gw-picker>' . $picker . '<div class="gw-cal-panels">' . $panels . '</div></div>' . gw_calendar_legend();
+	$page = 'yes' === ( $a['picker_sets_page'] ?? 'no' ) ? ' data-gw-page="1"' : '';
+	return '<div class="' . esc_attr( $class ) . '" data-gw-picker' . $page . '>' . $picker . '<div class="gw-cal-panels">' . $panels . '</div></div>' . gw_calendar_legend();
 }
 
 /**

@@ -12,6 +12,20 @@
 			s.value = view;
 		} );
 	}
+	function pageYear( view ) {
+		if ( view === 'last' ) return 'last';
+		if ( view === 'all' ) return 'all';
+		return view.charAt( 0 ) === 'y' ? view.slice( 1 ) : view;
+	}
+	function goToYear( view ) {
+		try {
+			var url = new URL( window.location.href );
+			url.searchParams.set( 'gw_year', pageYear( view ) );
+			window.location.href = url.toString();
+		} catch ( e ) {
+			window.location.search = 'gw_year=' + encodeURIComponent( pageYear( view ) );
+		}
+	}
 	function init( root ) {
 		if ( root.gwReady ) {
 			return;
@@ -19,12 +33,14 @@
 		root.gwReady = true;
 		root.querySelectorAll( 'select' ).forEach( function ( select ) {
 			select.addEventListener( 'change', function () {
+				if ( root.hasAttribute( 'data-gw-page' ) ) { goToYear( select.value ); return; }
 				show( root, select.value );
 			} );
 		} );
 		var tabs = Array.prototype.slice.call( root.querySelectorAll( '[role="tab"]' ) );
 		tabs.forEach( function ( tab, i ) {
 			tab.addEventListener( 'click', function () {
+				if ( root.hasAttribute( 'data-gw-page' ) ) { goToYear( tab.getAttribute( 'data-view' ) ); return; }
 				show( root, tab.getAttribute( 'data-view' ) );
 				// In a scrolling row, bring the chosen year into view.
 				if ( tab.scrollIntoView ) {
