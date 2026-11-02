@@ -1,6 +1,8 @@
 # Git Widget for WordPress
 
-I wanted my GitHub activity on my own website without screenshots that go stale the day after I take them, so I built this. Git Widget pulls your profile, contribution calendar, charts, achievements and more straight from GitHub and drops them into any page. It works as a Beaver Builder module or a simple `[git_widget]` shortcode, and Gutenberg and Elementor are next on the list.
+I wanted my GitHub activity on my own website without embed codes that don't scale well with today's multitude of screen resolutions, screenshots that go stale the day after I take them, and cooler ways to display your accomplishments, so I built this. 
+
+Git Widget pulls your profile, contribution calendar, charts, achievements and more straight from GitHub and drops them into any WordPress page. It works as a Beaver Builder module or a simple `[git_widget]` shortcode, and Gutenberg and Elementor are next on the list.
 
 ## What it Does
 
@@ -14,7 +16,7 @@ Pick any of these sections, in any order, in one widget or spread across several
 - **Contributions per month** and **per year:** bar charts
 - **Contributions over time:** a running total, because watching a line go up is very satisfying
 - **Activity by day of the week:** find out if you really are a Thursday person
-- **Top languages:** a donut chart in GitHub's own language colours
+- **Top languages:** a doughnut chart in GitHub's own language colours
 - **Top repositories:** cards with stars, forks, language and last update
 - **Achievements:** your badges, tiers and all (x2, x3...)
 
@@ -26,7 +28,7 @@ Every widget is independent. Put your bio card in the sidebar and your activity 
 2. Go to **Settings > Git Widget** and enter your GitHub username.
 3. Optional: add a GitHub token. A fine-grained token with no permissions at all is enough, since it only reads public data. It gives exact contribution type counts and yearly totals. Everything else works without one.
 
-GitHub data is cached (6 hours by default) so your pages stay quick. If you want fresh numbers right now, hit **Refresh GitHub data now**.
+GitHub data is cached (24 hours by default) so your pages stay quick. If you want fresh numbers right now, hit **Refresh GitHub data now**.
 
 ## Beaver Builder
 
