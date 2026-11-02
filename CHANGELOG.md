@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2026-11-01)
+
+- Simpler Beaver Builder settings: each part of the widget now has its own Show / Hide switch, and a part's options only appear once it is turned on
+- Options for a part you are not showing stay out of the way, so the panel only ever shows what is relevant
+- Widgets saved before this update keep working unchanged
+
 ## 0.2.1 (2026-10-31)
 
 - Licensed under GPL-3.0-or-later, with one additional term under section 7(b) (see ADDITIONAL-TERMS.md)
