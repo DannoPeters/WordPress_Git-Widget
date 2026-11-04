@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 (2026-11-04)
+
+- Optional background preloading so every year and section a visitor might open is already cached: pages never wait on GitHub and switching the year is instant (#33)
+- Only ever fetches when the site is actually being viewed, so an idle site makes no GitHub calls at all (#36)
+- Warms a few entries at a time, pausing when GitHub's rate limit is near, and re-warms shortly before the cache expires
+- Settings > Git Widget: an enable switch, entries-per-run, a live status line, and a "Prime cache now" button
+
 ## 0.2.1 (2026-10-31)
 
 - Licensed under GPL-3.0-or-later, with one additional term under section 7(b) (see ADDITIONAL-TERMS.md)

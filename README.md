@@ -130,6 +130,15 @@ If Pro is ever removed, widgets don't break. The Pro settings just fall back to 
 
 The core exposes filters so add-ons can plug in: `gw_is_pro`, `gw_defaults`, `gw_atts`, `gw_widget_style`, `gw_widget_classes`, `gw_credit`, `gw_bb_form` and `gw_bb_atts`. Every colour is a CSS variable (`--gw-c-text`, `--gw-c-cal1`, `--gw-c-chart` and friends) that falls back to the GitHub colour.
 
+## Preloading (keeping the cache warm)
+
+GitHub data is cached so pages stay fast. You can also let the plugin keep that cache warm in the background, under Settings > Git Widget:
+
+- It warms every year and section a visitor could open, so nothing waits on GitHub and switching the year is instant.
+- It only fetches when the site is being viewed. No visitors, no calls, so an idle site never touches GitHub.
+- It warms a few entries at a time, pauses if GitHub's rate limit is close, and re-warms shortly before the cache expires.
+- There's a live status line and a "Prime cache now" button if you want to warm a chunk straight away.
+
 ## Licence
 
 Git Widget is free software under the [GNU GPL, version 3 or later](LICENSE), with one additional term allowed by section 7(b): the "Git Widget by DannoPeters" credit under each widget has to stay visible, with its link. Restyle it however you like, just don't remove or hide it. The full wording is in [ADDITIONAL-TERMS.md](ADDITIONAL-TERMS.md). Sites with a Git Widget Pro licence don't need the credit.

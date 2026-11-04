@@ -81,10 +81,45 @@ function gw_get( $url, $json = true, $auth = true ) {
 	}
 	$code = wp_remote_retrieve_response_code( $resp );
 	$body = wp_remote_retrieve_body( $resp );
+	// Remember when GitHub's rate limit resets, so the preloader can wait instead of hammering a closed door.
+	$remaining = wp_remote_retrieve_header( $resp, 'x-ratelimit-remaining' );
+	$reset     = (int) wp_remote_retrieve_header( $resp, 'x-ratelimit-reset' );
+	if ( ( '' !== $remaining && 0 === (int) $remaining ) || in_array( $code, array( 403, 429 ), true ) ) {
+		gw_set_rate_reset( $reset ? $reset : time() + 15 * MINUTE_IN_SECONDS );
+	}
 	if ( 200 !== $code ) {
 		return new WP_Error( 'gw_http', 'GitHub returned HTTP ' . $code . ' for ' . $url );
 	}
 	return $json ? json_decode( $body, true ) : $body;
+}
+
+/**
+ * Record the moment GitHub's rate limit frees up again.
+ *
+ * @param int $reset Unix time the limit resets.
+ * @return void
+ */
+function gw_set_rate_reset( $reset ) {
+	update_option( 'gw_rate_reset', (int) $reset, false );
+}
+
+/**
+ * When GitHub's rate limit frees up, or 0 if we aren't waiting on it.
+ *
+ * @return int Unix time, or 0.
+ */
+function gw_rate_reset() {
+	$r = (int) get_option( 'gw_rate_reset', 0 );
+	return $r > time() ? $r : 0;
+}
+
+/**
+ * Whether we are currently rate-limited by GitHub.
+ *
+ * @return bool
+ */
+function gw_rate_limited() {
+	return gw_rate_reset() > 0;
 }
 
 /**
